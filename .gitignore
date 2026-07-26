@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Data — never commit challenge PDFs or labels
+data/
+*.zip
+*.pdf
+
+# Local outputs
+/tmp/
+predictions.jsonl
+evaluation.json
+case_scores.jsonl
+out/
+scratch/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
