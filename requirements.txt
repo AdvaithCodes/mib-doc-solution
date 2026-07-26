@@ -1,0 +1,15 @@
+# Pinned runtime dependencies. No system packages required.
+#
+# NOTE: rapidocr-onnxruntime declares a dependency on opencv-python, which needs
+# libGL at import time and is not present in python:3.12-slim. The Dockerfile
+# removes it after install; opencv-python-headless provides the same `cv2`
+# module without the GUI/GL linkage.
+
+numpy==2.5.1
+onnxruntime==1.28.0
+opencv-python-headless==5.0.0.93
+pdfplumber==0.11.10
+pillow==12.3.0
+pypdf==6.14.2
+pypdfium2==5.12.1
+rapidocr-onnxruntime==1.4.4

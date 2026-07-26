@@ -1,0 +1,107 @@
+name: docker-contract
+
+# Validates the submission against 8090's scoring contract on every push.
+# The scoring host is Linux/x86_64, so the image is built for linux/amd64
+# rather than the developer's architecture.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (linux/amd64)
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            -t mib-submission:ci \
+            .
+
+      - name: Check image size against the 4 GiB limit
+        run: |
+          bytes=$(docker image inspect mib-submission:ci --format '{{.Size}}')
+          limit=$((4 * 1024 * 1024 * 1024))
+          printf 'image size: %s bytes (%.2f GiB), limit %s bytes\n' \
+            "$bytes" "$(echo "scale=2; $bytes/1073741824" | bc)" "$limit"
+          if [ "$bytes" -gt "$limit" ]; then
+            echo "::error::image exceeds the 4 GiB limit"
+            exit 1
+          fi
+
+      - name: Build a throwaway input PDF
+        run: |
+          mkdir -p /tmp/mib-in /tmp/mib-out
+          python3 - <<'PY'
+          # Minimal one-page PDF named like a case packet. Content does not matter;
+          # this exercises argument handling, discovery, and output writing.
+          pdf = (
+              b"%PDF-1.4\n"
+              b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+              b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+              b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\n"
+              b"trailer<</Root 1 0 R>>\n%%EOF\n"
+          )
+          open("/tmp/mib-in/MIB-000001.pdf", "wb").write(pdf)
+          PY
+          ls -la /tmp/mib-in
+
+      - name: Run under the exact scoring flags
+        run: |
+          docker run --rm \
+            --network none \
+            --cpus 4 \
+            --memory 8g \
+            --pids-limit 512 \
+            --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,size=2g \
+            --mount type=bind,src=/tmp/mib-in,dst=/input,readonly \
+            --mount type=bind,src=/tmp/mib-out,dst=/output \
+            mib-submission:ci /input /output/predictions.jsonl
+
+      - name: Validate the output
+        run: |
+          test -s /tmp/mib-out/predictions.jsonl || {
+            echo "::error::no predictions written"; exit 1; }
+          cat /tmp/mib-out/predictions.jsonl
+          python3 - <<'PY'
+          import json, sys
+          ADJ = {"APPROVED", "DENIED", "NEEDS_REVIEW"}
+          FEE = {"paid", "waived", "unpaid", "unknown"}
+          bad = 0
+          for i, line in enumerate(open("/tmp/mib-out/predictions.jsonl"), 1):
+              line = line.strip()
+              if not line:
+                  continue
+              r = json.loads(line)
+              if r.get("adjudication") not in ADJ:
+                  print(f"line {i}: bad adjudication {r.get('adjudication')!r}"); bad += 1
+              if r.get("fee_status") not in FEE:
+                  print(f"line {i}: bad fee_status {r.get('fee_status')!r}"); bad += 1
+              c = r.get("confidence")
+              if not isinstance(c, (int, float)) or not 0.0 <= c <= 1.0:
+                  print(f"line {i}: bad confidence {c!r}"); bad += 1
+              if not r.get("case_id"):
+                  print(f"line {i}: missing case_id"); bad += 1
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Confirm the image has no network dependency at build time
+        run: |
+          # Re-run offline against the already-built image to prove nothing is
+          # fetched lazily on first use (model downloads are the usual culprit).
+          docker run --rm --network none \
+            --read-only --tmpfs /tmp:rw,size=2g \
+            --mount type=bind,src=/tmp/mib-in,dst=/input,readonly \
+            --mount type=bind,src=/tmp/mib-out,dst=/output \
+            mib-submission:ci /input /output/second-run.jsonl
+          test -s /tmp/mib-out/second-run.jsonl
