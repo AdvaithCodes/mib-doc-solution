@@ -169,7 +169,7 @@ def adjudicate(
     # 4. Unpaid fee denies unless a visible waiver applies. Contested fee
     #    evidence (zero owed with nothing authorising it) is contradictory,
     #    which FIELD_MANUAL routes to review rather than to a denial.
-    if fee == "unpaid" and fee_contested:
+    if fee_contested:
         return "NEEDS_REVIEW", "fee_contested"
     if fee == "unpaid":
         if not re.search(r"waiver", note_text, re.I):

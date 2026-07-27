@@ -2,7 +2,7 @@
 
 Public training set, 1000 cases:
   challenge baseline   50.77/150   (NEEDS_REVIEW everywhere, no extraction)
-  this pipeline       114.78/150   (113.01 on the 700 cases held out of tuning)
+  this pipeline       116.29/150   (114.54 on the 700 cases held out of tuning)
 
 The fit/holdout gap is real and worth watching: rules tuned against the first
 300 cases score about 6 points higher there than on cases never used for tuning.
@@ -30,20 +30,20 @@ from mib_pipeline.schema import Prediction
 # is maximally punished by any private-set case that breaks the pattern, and the
 # smoothing costs almost nothing on the large routes.
 _ROUTE_CONFIDENCE = {
-    "adjudicator_note": 0.98,      # 107/107 -- rank-1 signed evidence
-    "disqualifying_flag": 0.93,    # 24/24
-    "transit_visa": 0.86,          # 17/18
-    "review_flag": 0.71,           # 3/3
-    "revoked_sponsor": 0.62,       # 8/12
-    "clean": 0.62,                 # 6/9
-    "unpaid_fee": 0.60,            # 1/1
-    "fee_contested": 0.58,         # 5/8
-    "missing_sponsor": 0.55,       # 4/7
-    "fee_unknown": 0.45,           # 23/51
-    "arrival_date_missing": 0.40,  # 0/1
-    "missing": 0.40,               # 0/1
-    "waiver_unverified": 0.37,     # 5/15
-    "risk_unobserved": 0.34,       # 14/43
+    "adjudicator_note": 0.98,       # 107/107
+    "disqualifying_flag": 0.93,     # 24/24
+    "transit_visa": 0.86,           # 17/18
+    "unpaid_fee": 0.78,             # 5/5
+    "review_flag": 0.71,            # 3/3
+    "clean": 0.69,                  # 7/9
+    "revoked_sponsor": 0.62,        # 8/12
+    "fee_contested": 0.60,          # 1/1
+    "missing_sponsor": 0.55,        # 4/7
+    "fee_unknown": 0.50,            # 27/54
+    "arrival_date_missing": 0.40,   # 0/1
+    "missing": 0.40,                # 0/1
+    "waiver_unverified": 0.37,      # 5/15
+    "risk_unobserved": 0.34,        # 14/43
 }
 
 # Routes not in the table are unmeasured; 0.5 asserts nothing either way.
@@ -78,8 +78,8 @@ def process_case(pdf_path: str) -> Prediction | None:
     if not record["risk_flags"]:
         record["risk_flags"] = "none"
 
-    # The literal "Fee Status" word is the least reliable field on the receipt.
-    # Amount and Waiver Code determine it far more reliably; see fee.py.
+    # An explicit statement of fee status wins where one is readable; the
+    # receipt's numeric Amount and Waiver Code decide it otherwise. See fee.py.
     record["fee_status"], fee_known, fee_contested = infer_fee_status(
         packet, literal=record["fee_status"]
     )
