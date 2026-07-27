@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 from difflib import SequenceMatcher
 
 from mib_pipeline import vocab
@@ -147,7 +148,15 @@ def normalize_field(fieldname: str, value: str) -> str | None:
         if not m:
             return None
         y, mo, d = (int(x) for x in m.groups())
-        if not (1900 <= y <= 2100 and 1 <= mo <= 12 and 1 <= d <= 31):
+        if not 1900 <= y <= 2100:
+            return None
+        try:
+            # A real calendar date, not just plausible digits. OCR turns "30"
+            # into "31" happily, and the submission schema requires
+            # format: date -- "2026-06-31" fails validation and would take the
+            # whole file down with it.
+            date(y, mo, d)
+        except ValueError:
             return None
         return f"{y:04d}-{mo:02d}-{d:02d}"
 

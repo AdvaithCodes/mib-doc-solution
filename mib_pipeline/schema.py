@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, asdict, field
+from datetime import date
 
 ADJUDICATIONS = ("APPROVED", "DENIED", "NEEDS_REVIEW")
 
@@ -19,6 +20,19 @@ DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 # read as "not recovered" rather than as a real sponsor or arrival date.
 SENTINEL_SPONSOR = "SPN-0000"
 SENTINEL_DATE = "1900-01-01"
+
+
+def _is_calendar_date(value: str) -> bool:
+    """True only for a real date. The schema requires format: date, so a
+    syntactically well-formed but impossible date like 2026-06-31 -- which OCR
+    produces readily -- fails validation for the entire submission."""
+    if not DATE_RE.match(value):
+        return False
+    try:
+        date(*(int(x) for x in value.split("-")))
+    except ValueError:
+        return False
+    return True
 FEE_STATUSES = ("paid", "waived", "unpaid", "unknown")
 
 # Raw extraction weights, from EVALUATION.md. Useful for prioritising work:
@@ -83,7 +97,7 @@ class Prediction:
         """
         if not SPONSOR_RE.match(self.sponsor_id or ""):
             self.sponsor_id = SENTINEL_SPONSOR
-        if not DATE_RE.match(self.arrival_date or ""):
+        if not _is_calendar_date(self.arrival_date or ""):
             self.arrival_date = SENTINEL_DATE
         return self
 
