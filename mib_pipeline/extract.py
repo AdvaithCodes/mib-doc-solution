@@ -218,12 +218,120 @@ def parse_page(page: Page) -> dict[str, list[Candidate]]:
     return found
 
 
+# Fields recoverable from a page without a usable label, because the value
+# itself is recognisable: a closed vocabulary, or a strict identifier pattern.
+_SWEEPABLE = ("species_code", "home_world", "declared_purpose", "visa_class",
+              "sponsor_id", "arrival_date", "applicant_name")
+
+# Sponsor letters name the applicant in prose rather than as a labelled field:
+#   "Sponsor SPN-2887 attests that Ixotari Tekrix is expected on Earth for ..."
+# Registry extracts use a "Registry Name" label the alias table already covers.
+_PROSE_NAME_RE = re.compile(
+    r"attests?\s+that\s+([A-Z][A-Za-z'\-]+(?:\s+[A-Z][A-Za-z'\-]+){1,2})\s+is\b"
+)
+
+
+def sweep_page(page: Page, wanted: set[str]) -> dict[str, Candidate]:
+    """Recover values from a page whose labels are too damaged to parse.
+
+    OCR fuses labels onto values with no separator at all --
+    "SpeclesCodaerLUNA_SECURID" -- and the labelled parser drops the line
+    entirely even though LUNA_SECURID is sitting in plain sight. Here the value
+    is matched directly, which works because every sweepable field is either a
+    closed vocabulary or a strict identifier pattern.
+
+    This runs only for fields no labelled candidate produced, and its results
+    are ranked below any labelled reading from the same page, so a clean
+    "Species Code: X" always wins over a sweep that finds Y elsewhere.
+    """
+    found: dict[str, Candidate] = {}
+    blob = " ".join(page.lines)
+    squashed = _norm(blob)
+
+    def add(fieldname: str, value: str) -> None:
+        # +1 keeps a swept value below a labelled one at the same authority.
+        found[fieldname] = Candidate(
+            value, page.authority + 1, page.exact, page.number, page.doc_type)
+
+    for fieldname in wanted & set(_SWEEPABLE):
+        if fieldname == "sponsor_id":
+            m = _SPONSOR_RE.search(blob)
+            if m:
+                add(fieldname, f"SPN-{m.group(1)}")
+        elif fieldname == "arrival_date":
+            value = normalize_field("arrival_date", blob)
+            if value:
+                add(fieldname, value)
+        elif fieldname == "applicant_name":
+            m = _PROSE_NAME_RE.search(blob)
+            if m:
+                value = normalize_field("applicant_name", m.group(1))
+                if value:
+                    add(fieldname, value)
+        else:
+            options = {"species_code": vocab.SPECIES_CODES,
+                       "home_world": vocab.HOME_WORLDS,
+                       "declared_purpose": vocab.DECLARED_PURPOSES,
+                       "visa_class": vocab.VISA_CLASSES}[fieldname]
+            # Exact containment only: a fuzzy match against a whole page of text
+            # would fire on almost anything.
+            for option in options:
+                if _norm(option) and _norm(option) in squashed:
+                    add(fieldname, option)
+                    break
+    return found
+
+
+# Two readings this similar are the same value seen twice, not a disagreement.
+_SAME_VALUE_RATIO = 0.6
+
+
+def _prefer_clean_reading(chosen: Candidate, all_of_them: list[Candidate]) -> Candidate:
+    """Upgrade a damaged reading to an exact one of the same value.
+
+    An applicant's name appears on the intake form, the registry extract, the
+    sponsor letter and the biometric slip. Authority decides which page wins a
+    *conflict*, but when a damaged OCR page and a clean digital page name the
+    same person there is no conflict -- only one accurate reading and one
+    corrupted one. Taking "Qorvoss Qomora" from a mangled intake form over
+    "Qorvoss Qormora" from an exact registry extract is losing information for
+    no reason.
+
+    Similarity is required, so a genuine second applicant in the packet still
+    loses to the authoritative page rather than silently replacing it.
+    """
+    if chosen.exact:
+        return chosen
+    for other in all_of_them:
+        if not other.exact:
+            continue
+        if _ratio(_norm(other.value), _norm(chosen.value)) >= _SAME_VALUE_RATIO:
+            return other
+    return chosen
+
+
 def resolve(packet: Packet) -> dict[str, Candidate]:
     """Collapse per-page candidates into one record using source authority."""
     best: dict[str, Candidate] = {}
+    seen: dict[str, list[Candidate]] = {}
     for page in packet.by_authority():
         for fieldname, candidates in parse_page(page).items():
             for cand in candidates:
+                seen.setdefault(fieldname, []).append(cand)
+                if cand.better_than(best.get(fieldname)):
+                    best[fieldname] = cand
+
+    # Names are the only open-vocabulary field, so they cannot be snapped back
+    # to a legal value the way species codes and home worlds can. A cross-page
+    # clean reading is the closest available equivalent.
+    if "applicant_name" in best:
+        best["applicant_name"] = _prefer_clean_reading(
+            best["applicant_name"], seen.get("applicant_name", []))
+
+    missing = {f for f in _SWEEPABLE if f not in best}
+    if missing:
+        for page in packet.by_authority():
+            for fieldname, cand in sweep_page(page, missing).items():
                 if cand.better_than(best.get(fieldname)):
                     best[fieldname] = cand
     return best

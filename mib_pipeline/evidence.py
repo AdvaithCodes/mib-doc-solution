@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 import warnings
+from difflib import SequenceMatcher
 from dataclasses import dataclass, field
 
 warnings.filterwarnings("ignore")
@@ -168,8 +169,46 @@ CONTENT_PATTERNS = (
 )
 
 
+# Canonical headings, for fuzzy recognition when OCR has damaged the title past
+# what a regex will match ("FORMU-8ogo:ExtraterrmstrialWorkAuthorization_Intakn").
+# Misfiling a real document as "unknown" drops it from its true authority to
+# rank 8, which discards its evidence in every conflict.
+HEADINGS = (
+    ("intake_form", "FORMI8090EXTRATERRESTRIALWORKAUTHORIZATIONINTAKE"),
+    ("biometric_slip", "FORMB13BIOMETRICSCANSLIP"),
+    ("sponsor_letter", "SPONSORATTESTATIONLETTER"),
+    ("registry_extract", "PLANETARYREGISTRYEXTRACT"),
+    ("adjudicator_note", "MANUALADJUDICATORNOTE"),
+    ("fee_receipt", "MIBFEERECEIPT"),
+    ("passport_image", "PASSPORTIMAGE"),
+)
+
+_FUZZY_HEADING_MIN = 0.62
+
+
+def _best_heading(head: str) -> str | None:
+    """Best fuzzy heading match within the page's opening text.
+
+    Scored by similarity weighted by heading length, so a short generic title
+    like PASSPORTIMAGE -- which frequently appears as a caption on a page whose
+    real heading is the intake form -- cannot outrank the longer, more specific
+    document title it sits beside.
+    """
+    best, best_score = None, 0.0
+    for name, heading in HEADINGS:
+        n = len(heading)
+        for start in range(0, max(len(head) - n + 3, 1)):
+            window = head[start:start + n + 2]
+            if len(window) < n // 2:
+                break
+            ratio = SequenceMatcher(None, window, heading).ratio()
+            if ratio >= _FUZZY_HEADING_MIN and ratio * n > best_score:
+                best, best_score = name, ratio * n
+    return best
+
+
 def classify(lines: list[str]) -> str:
-    """Identify the document type, by heading first and by content as a fallback."""
+    """Identify the document type: exact heading, then content, then fuzzy heading."""
     head = "".join(lines[:3]).upper().replace(" ", "").replace("'", "")
     for name, pattern in DOC_PATTERNS:
         if pattern.search(head):
@@ -179,7 +218,9 @@ def classify(lines: list[str]) -> str:
     for name, pattern in CONTENT_PATTERNS:
         if pattern.search(body):
             return name
-    return "unknown"
+
+    fuzzy = _best_heading(re.sub(r"[^A-Z0-9]", "", "".join(lines[:5]).upper()))
+    return fuzzy or "unknown"
 
 
 def _clean(lines: list[str]) -> list[str]:

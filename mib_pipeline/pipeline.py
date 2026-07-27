@@ -1,9 +1,12 @@
 """Per-case orchestration: packet -> evidence -> record -> decision.
 
-Adjudication is not wired in yet; every case currently routes to NEEDS_REVIEW so
-extraction can be measured on its own. Reference points on the public train set:
-  challenge baseline  50.77/150   (NEEDS_REVIEW everywhere, no extraction)
-  contract skeleton   51.75/150
+Public training set, 1000 cases:
+  challenge baseline   50.77/150   (NEEDS_REVIEW everywhere, no extraction)
+  this pipeline       114.78/150   (113.01 on the 700 cases held out of tuning)
+
+The fit/holdout gap is real and worth watching: rules tuned against the first
+300 cases score about 6 points higher there than on cases never used for tuning.
+The holdout figure is the honest one.
 """
 from __future__ import annotations
 
@@ -27,20 +30,20 @@ from mib_pipeline.schema import Prediction
 # is maximally punished by any private-set case that breaks the pattern, and the
 # smoothing costs almost nothing on the large routes.
 _ROUTE_CONFIDENCE = {
-    "adjudicator_note": 0.98,      # 96/96  -- rank-1 signed evidence
-    "disqualifying_flag": 0.93,    # 25/25
+    "adjudicator_note": 0.98,      # 107/107 -- rank-1 signed evidence
+    "disqualifying_flag": 0.93,    # 24/24
     "transit_visa": 0.86,          # 17/18
-    "clean": 0.67,                 # 8/11
-    "unpaid_fee": 0.67,            # 2/2
+    "review_flag": 0.71,           # 3/3
     "revoked_sponsor": 0.62,       # 8/12
-    "review_flag": 0.62,           # 3/4
-    "missing_sponsor": 0.58,       # 5/8
+    "clean": 0.62,                 # 6/9
+    "unpaid_fee": 0.60,            # 1/1
     "fee_contested": 0.58,         # 5/8
-    "fee_unknown": 0.47,           # 25/54
-    "waiver_unverified": 0.40,     # 6/16
+    "missing_sponsor": 0.55,       # 4/7
+    "fee_unknown": 0.45,           # 23/51
     "arrival_date_missing": 0.40,  # 0/1
     "missing": 0.40,               # 0/1
-    "risk_unobserved": 0.33,       # 14/44
+    "waiver_unverified": 0.37,     # 5/15
+    "risk_unobserved": 0.34,       # 14/43
 }
 
 # Routes not in the table are unmeasured; 0.5 asserts nothing either way.
