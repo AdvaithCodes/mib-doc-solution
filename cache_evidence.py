@@ -51,16 +51,34 @@ def main() -> int:
         return 2
     pdf_dir, out_path = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
     pdfs = sorted(pdf_dir.glob("*.pdf"))
+
+    # Resume: this run takes hours over thousands of packets, and losing all of
+    # it to an interruption (or to restarting with better settings) is the
+    # difference between a night's progress and none.
+    already = set()
+    if out_path.exists():
+        for line in out_path.open(encoding="utf-8"):
+            line = line.strip()
+            if line:
+                try:
+                    already.add(json.loads(line)["case_id"])
+                except (ValueError, KeyError):
+                    pass  # truncated final line from an interrupted run
+    if already:
+        pdfs = [p for p in pdfs if p.stem not in already]
+        print(f"resuming: {len(already)} already cached, {len(pdfs)} to go",
+              file=sys.stderr)
+
     print(f"caching evidence for {len(pdfs)} packets -> {out_path}", file=sys.stderr)
 
-    done = 0
-    with out_path.open("w", encoding="utf-8") as fh:
+    done = len(already)
+    with out_path.open("a" if already else "w", encoding="utf-8") as fh:
         with ProcessPoolExecutor(max_workers=WORKERS) as pool:
             for rec in pool.map(extract_one, [str(p) for p in pdfs], chunksize=4):
                 fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 done += 1
                 if done % 100 == 0:
-                    print(f"  {done}/{len(pdfs)}", file=sys.stderr)
+                    print(f"  {done}/{len(pdfs) + len(already)}", file=sys.stderr)
     print(f"cached {done} packets", file=sys.stderr)
     return 0
 
