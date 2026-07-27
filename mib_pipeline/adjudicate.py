@@ -14,13 +14,14 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from difflib import SequenceMatcher
 
 from mib_pipeline import vocab
 from mib_pipeline.evidence import Packet
 
 # "Finding: DENIED." / "Finding DENIED" / a bare decision word on its own line.
 _FINDING_RE = re.compile(
-    r"\bfinding\b\s*[:\-]?\s*(APPROVED|DENIED|NEEDS[_\s]?REVIEW|REVIEW)", re.I
+    r"finding\s*[:\-\.]?\s*(APPROVED|DENIED|NEEDS[_\s]?REVIEW|REVIEW)", re.I
 )
 _BARE_DECISION_RE = re.compile(r"^\s*(APPROVED|DENIED|NEEDS[_\s]?REVIEW|REVIEW)\s*$", re.I)
 
@@ -38,22 +39,83 @@ def _canon(word: str) -> str:
     return w
 
 
+_DECISIONS = ("NEEDSREVIEW", "APPROVED", "DENIED")
+_FINDING_TOKEN = "FINDING"
+
+
+def _letters(text: str) -> str:
+    return re.sub(r"[^A-Z]", "", text.upper())
+
+
+def _fuzzy_find(haystack: str, needle: str, threshold: float) -> int:
+    """Index just past the best fuzzy occurrence of `needle`, or -1."""
+    n = len(needle)
+    best, best_at = threshold, -1
+    for start in range(0, max(len(haystack) - n + 1, 0)):
+        for width in (n - 1, n, n + 1):
+            window = haystack[start:start + width]
+            if not window:
+                continue
+            score = SequenceMatcher(None, window, needle).ratio()
+            if score > best:
+                best, best_at = score, start + width
+    return best_at
+
+
+def _decision_after_finding(text: str) -> str | None:
+    """Read the decision that follows a Finding label, tolerating OCR damage.
+
+    Damaged notes yield "Finding.APPROVED", "FiIRIngnGAPPROVED" and
+    "FrAfungVEUO_RCvIEw". The label and the value are both corrupted, so both
+    are matched approximately.
+    """
+    letters = _letters(text)
+    at = _fuzzy_find(letters, _FINDING_TOKEN, 0.7)
+    if at < 0:
+        return None
+    window = letters[at:at + 16]
+    best, best_score = None, 0.62
+    for decision in _DECISIONS:
+        probe = window[:len(decision) + 2]
+        score = SequenceMatcher(None, probe, decision).ratio()
+        if decision in window:
+            score = 1.0
+        if score > best_score:
+            best, best_score = decision, score
+    if best is None:
+        return None
+    return "NEEDS_REVIEW" if best == "NEEDSREVIEW" else best
+
+
 def read_adjudicator_note(packet: Packet) -> tuple[str | None, str]:
     """Return (decision, note_text) from visible rank-1 adjudicator notes.
 
-    Decoy-marked notes are ignored: FIELD_MANUAL is explicit that a "sample
-    denial" watermark is not a denial and that a copy artifact is not policy.
+    A decoy marker does not invalidate the note. FIELD_MANUAL says a watermark
+    reading "sample denial" is not *itself* a denial -- it does not overrule a
+    signed Finding printed on the same page. Measured on train, 38 packets carry
+    an explicit Finding alongside a "SAMPLE DENIAL" or "COPY ARTIFACT" stamp,
+    and the Finding matches the truth in every one.
+
+    So decoy markers suppress only a *bare* decision word, which is exactly what
+    a decorative stamp looks like once OCR'd.
     """
     for page in packet.pages:
         if page.doc_type != "adjudicator_note":
             continue
-        text = " ".join(page.lines)
-        if _DECOY_RE.search(text):
-            continue
+        text = " ".join(page.all_lines)
+
         m = _FINDING_RE.search(text)
         if m:
             return _canon(m.group(1)), text
-        for line in page.lines:
+
+        decision = _decision_after_finding(text)
+        if decision:
+            return decision, text
+
+        # No Finding label: a lone decision word may be a decorative stamp.
+        if _DECOY_RE.search(text):
+            continue
+        for line in page.all_lines:
             m = _BARE_DECISION_RE.match(line)
             if m:
                 return _canon(m.group(1)), text
@@ -75,7 +137,11 @@ def _parse_date(value: str) -> date | None:
 
 
 def adjudicate(
-    record: dict[str, str], packet: Packet, risk_known: bool = True
+    record: dict[str, str],
+    packet: Packet,
+    risk_known: bool = True,
+    fee_known: bool = True,
+    fee_contested: bool = False,
 ) -> tuple[str, str]:
     """Return (decision, reason). Reason is retained for calibration and debugging."""
     note_decision, note_text = read_adjudicator_note(packet)
@@ -100,7 +166,11 @@ def adjudicate(
     if sponsor in vocab.REVOKED_SPONSORS:
         return "DENIED", "revoked_sponsor"
 
-    # 4. Unpaid fee denies unless a visible waiver applies.
+    # 4. Unpaid fee denies unless a visible waiver applies. Contested fee
+    #    evidence (zero owed with nothing authorising it) is contradictory,
+    #    which FIELD_MANUAL routes to review rather than to a denial.
+    if fee == "unpaid" and fee_contested:
+        return "NEEDS_REVIEW", "fee_contested"
     if fee == "unpaid":
         if not re.search(r"waiver", note_text, re.I):
             return "DENIED", "unpaid_fee"
@@ -108,16 +178,21 @@ def adjudicate(
 
     # --- everything below is a doubt, and doubt routes to review ---
 
-    # 5. Missing sponsor, except for diplomatic packets.
+    # 5. No valid sponsor, outside the diplomatic exemption. FIELD_MANUAL makes
+    #    this a requirement rather than a doubt: "An applicant needs a valid
+    #    SPN-#### sponsor unless they are applying under DIP-1." Measured on the
+    #    full training set this route is 16 APPROVED / 25 DENIED / 7 REVIEW, so
+    #    denying scores 207 raw against 138 for routing to review, and it is what
+    #    the published policy says.
     if not sponsor and visa != "DIP-1":
-        return "NEEDS_REVIEW", "missing_sponsor"
+        return "DENIED", "missing_sponsor"
 
     # 6. Fee waived outside the diplomatic case needs a visible hardship waiver.
     if fee == "waived" and visa not in vocab.FEE_WAIVER_OK:
         return "NEEDS_REVIEW", "waiver_unverified"
 
-    # 7. Unknown fee status is explicitly a review trigger.
-    if fee == "unknown" or not fee:
+    # 7. Unknown or unread fee status is explicitly a review trigger.
+    if fee == "unknown" or not fee or not fee_known:
         return "NEEDS_REVIEW", "fee_unknown"
 
     # 8. Review-only flags.
@@ -141,5 +216,5 @@ def adjudicate(
         if not record.get(fieldname):
             return "NEEDS_REVIEW", f"missing:{fieldname}"
 
-    # 11. Positive approval: identity, sponsor, fee, visa and risk all clean.
+    # 12. Positive approval: identity, sponsor, fee, visa and risk all clean.
     return "APPROVED", "clean"

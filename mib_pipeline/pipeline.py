@@ -11,25 +11,45 @@ import pathlib
 
 from mib_pipeline.adjudicate import adjudicate, flags_from_text, read_adjudicator_note
 from mib_pipeline.evidence import read_packet
+from mib_pipeline.fee import infer_fee_status
 from mib_pipeline.extract import resolve
 from mib_pipeline.schema import Prediction
 
-# Provisional confidence per decision route. These are placeholders: calibration
-# is a separate stage that fits these against measured accuracy once decisions
-# are frozen, which is the only way the 20-point Brier section pays out.
+# Calibrated confidence per decision route.
+#
+# The scorer compares confidence against whether the adjudication was correct
+# (Brier), so the right confidence for a route is simply that route's measured
+# accuracy. Fitted on training cases 1-300 with the decisions frozen first, then
+# evaluated on the remaining held-out cases.
+#
+# Each rate is smoothed with a Beta(2,2) prior, (correct + 2) / (n + 4). Raw
+# rates of 0.00 and 1.00 appear on routes with a handful of cases; emitting them
+# is maximally punished by any private-set case that breaks the pattern, and the
+# smoothing costs almost nothing on the large routes.
 _ROUTE_CONFIDENCE = {
-    "adjudicator_note": 0.90,
-    "disqualifying_flag": 0.85,
-    "transit_visa": 0.80,
-    "revoked_sponsor": 0.80,
-    "unpaid_fee": 0.75,
-    "clean": 0.70,
+    "adjudicator_note": 0.98,      # 96/96  -- rank-1 signed evidence
+    "disqualifying_flag": 0.93,    # 25/25
+    "transit_visa": 0.86,          # 17/18
+    "clean": 0.67,                 # 8/11
+    "unpaid_fee": 0.67,            # 2/2
+    "revoked_sponsor": 0.62,       # 8/12
+    "review_flag": 0.62,           # 3/4
+    "missing_sponsor": 0.58,       # 5/8
+    "fee_contested": 0.58,         # 5/8
+    "fee_unknown": 0.47,           # 25/54
+    "waiver_unverified": 0.40,     # 6/16
+    "arrival_date_missing": 0.40,  # 0/1
+    "missing": 0.40,               # 0/1
+    "risk_unobserved": 0.33,       # 14/44
 }
+
+# Routes not in the table are unmeasured; 0.5 asserts nothing either way.
+_DEFAULT_CONFIDENCE = 0.50
 
 
 def confidence_for(decision: str, reason: str, record: dict[str, str]) -> float:
-    key = reason.split(":")[0]
-    return _ROUTE_CONFIDENCE.get(key, 0.55)
+    """Confidence that this adjudication is correct, not that the OCR was clean."""
+    return _ROUTE_CONFIDENCE.get(reason.split(":")[0], _DEFAULT_CONFIDENCE)
 
 SCORED_FIELDS = (
     "applicant_name", "species_code", "home_world", "visa_class", "sponsor_id",
@@ -54,8 +74,12 @@ def process_case(pdf_path: str) -> Prediction | None:
     risk_known = bool(record["risk_flags"])
     if not record["risk_flags"]:
         record["risk_flags"] = "none"
-    if not record["fee_status"]:
-        record["fee_status"] = "unknown"
+
+    # The literal "Fee Status" word is the least reliable field on the receipt.
+    # Amount and Waiver Code determine it far more reliably; see fee.py.
+    record["fee_status"], fee_known, fee_contested = infer_fee_status(
+        packet, literal=record["fee_status"]
+    )
 
     # Risk flags are only partly stated on the page. The adjudicator note's reason
     # text names them explicitly ("Disqualifying risk flag: planetary_embargo"),
@@ -67,7 +91,10 @@ def process_case(pdf_path: str) -> Prediction | None:
             existing = {f for f in record["risk_flags"].split("|") if f and f != "none"}
             record["risk_flags"] = "|".join(sorted(existing | set(mined)))
 
-    decision, reason = adjudicate(record, packet, risk_known=risk_known)
+    decision, reason = adjudicate(
+        record, packet, risk_known=risk_known,
+        fee_known=fee_known, fee_contested=fee_contested,
+    )
 
     # A case_id read off the page is preferred, but the filename is authoritative
     # for identifying which case this prediction answers.

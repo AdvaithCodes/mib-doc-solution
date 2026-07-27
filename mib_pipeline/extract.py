@@ -127,7 +127,12 @@ def normalize_field(fieldname: str, value: str) -> str | None:
     if fieldname == "visa_class":
         return snap(value, vocab.VISA_CLASSES, threshold=0.55)
     if fieldname == "fee_status":
-        return snap(value, vocab.FEE_STATUSES, threshold=0.55)
+        # Four short, mutually distinct options, reached only via a fee-status
+        # label, so context is already tight. OCR damage on words this short
+        # drops the similarity ratio hard -- "pold"/"paid" and "peld"/"paid"
+        # both score 0.50 -- so the threshold has to sit below that to recover
+        # them. Competing options score lower still, and the best match wins.
+        return snap(value, vocab.FEE_STATUSES, threshold=0.45)
 
     if fieldname == "sponsor_id":
         m = _SPONSOR_RE.search(value)

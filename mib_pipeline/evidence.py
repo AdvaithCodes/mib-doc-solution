@@ -159,7 +159,7 @@ def _split_visible(page) -> tuple[str, str, int]:
 # adjudicator note as "unknown" drops it from rank 1 to rank 8 -- discarding the
 # single most reliable evidence in the packet.
 CONTENT_PATTERNS = (
-    ("adjudicator_note", re.compile(r"\bFINDING\b|\bREASON\b|MANUALCORRECTION", re.I)),
+    ("adjudicator_note", re.compile(r"FINDING[:\.\-]|MANUALADJUDICAT|MANUALCORRECTION", re.I)),
     ("fee_receipt", re.compile(r"FEESTATUS|WAIVERCODE|AMOUNT\$", re.I)),
     ("biometric_slip", re.compile(r"OBSERVEDFLAGS|BIOMETRICCONFIDENCE|SPECIESMATCH|SCANIMAGE", re.I)),
     ("registry_extract", re.compile(r"REGISTRYNAME|REGISTRYSTATUS|REGISTRYIMAGE", re.I)),
