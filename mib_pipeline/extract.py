@@ -333,9 +333,10 @@ def resolve(packet: Packet) -> dict[str, Candidate]:
     # Names are the only open-vocabulary field, so they cannot be snapped back
     # to a legal value the way species codes and home worlds can. A cross-page
     # clean reading is the closest available equivalent.
-    if "applicant_name" in best:
-        best["applicant_name"] = _prefer_clean_reading(
-            best["applicant_name"], seen.get("applicant_name", []))
+    for _field in ("applicant_name", "visa_class", "species_code", "home_world",
+                   "sponsor_id", "declared_purpose"):
+        if _field in best:
+            best[_field] = _prefer_clean_reading(best[_field], seen.get(_field, []))
 
     missing = {f for f in _SWEEPABLE if f not in best}
     if missing:
