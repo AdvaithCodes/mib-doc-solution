@@ -22,7 +22,7 @@ from mib_pipeline.evidence import Packet, Page, classify
 from mib_pipeline.extract import resolve
 from mib_pipeline.fee import infer_fee_status
 from mib_pipeline.pipeline import SCORED_FIELDS, confidence_for
-from mib_pipeline.schema import FIELD_WEIGHTS
+from mib_pipeline.schema import FIELD_WEIGHTS, Prediction
 
 CLASSIFICATION_POINTS = {"correct": 8, "to_review": 2, "missed_review": 1,
                          "wrong": 0, "false_approval": -4}
@@ -85,10 +85,14 @@ def main() -> int:
     ap.add_argument("--split", type=int, default=0,
                     help="report separately for the first N (fit) and the rest (holdout)")
     ap.add_argument("--routes", action="store_true", help="per-route accuracy table")
+    ap.add_argument("--predict", metavar="PATH",
+                    help="write predictions.jsonl (labels may be a manifest with no answers)")
     args = ap.parse_args()
 
     truth = {r["case_id"]: r for r in csv.DictReader(open(args.labels))}
+    scored = all("adjudication" in r for r in truth.values())
     groups = {"all": [], "fit": [], "holdout": []}
+    predictions = {}
     routes = collections.defaultdict(lambda: [0, 0])
 
     for idx, packet in enumerate(load(args.cache)):
@@ -96,6 +100,18 @@ def main() -> int:
         if not t:
             continue
         record, decision, reason, conf = decide(packet)
+
+        if args.predict:
+            pred = Prediction(case_id=packet.case_id, adjudication=decision,
+                              confidence=conf, **record)
+            problems = pred.validate()
+            if not problems:
+                predictions[packet.case_id] = pred
+            else:
+                print(f"omitting {packet.case_id}: {problems}", file=sys.stderr)
+
+        if not scored:
+            continue
 
         ext_raw = ext_max = 0
         for f, w in FIELD_WEIGHTS.items():
@@ -129,6 +145,14 @@ def main() -> int:
         cat = sum(1 for r in rows if r[4] == "false_approval")
         print(f"{name:<9} n={len(rows):<5} total {ext+cls+cal:7.2f}   "
               f"ext {ext:5.2f}  cls {cls:5.2f}  cal {cal:5.2f}   catastrophic {cat}")
+
+    if args.predict:
+        out = pathlib.Path(args.predict)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("w", encoding="utf-8") as fh:
+            for case_id in sorted(predictions):
+                fh.write(predictions[case_id].finalize().to_json_line() + "\n")
+        print(f"wrote {len(predictions)} predictions -> {out}", file=sys.stderr)
 
     if args.split:
         report("fit", groups["fit"])

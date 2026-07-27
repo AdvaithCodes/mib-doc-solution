@@ -6,9 +6,19 @@ in one place means an invalid record cannot reach the output file.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, asdict, field
 
 ADJUDICATIONS = ("APPROVED", "DENIED", "NEEDS_REVIEW")
+
+# Schema-constrained fields, from schemas/submission.schema.json.
+SPONSOR_RE = re.compile(r"^SPN-[0-9]{4}$")
+DATE_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+
+# Placeholders for unread constrained fields. Deliberately implausible so they
+# read as "not recovered" rather than as a real sponsor or arrival date.
+SENTINEL_SPONSOR = "SPN-0000"
+SENTINEL_DATE = "1900-01-01"
 FEE_STATUSES = ("paid", "waived", "unpaid", "unknown")
 
 # Raw extraction weights, from EVALUATION.md. Useful for prioritising work:
@@ -57,6 +67,25 @@ class Prediction:
         if not self.risk_flags:
             problems.append("risk_flags empty (use 'none')")
         return problems
+
+    def finalize(self) -> "Prediction":
+        """Fill schema-required placeholders for fields we could not read.
+
+        schemas/submission.schema.json constrains two fields beyond "string":
+        sponsor_id must match ^SPN-[0-9]{4}$ and arrival_date must be a date.
+        An empty string fails both, and scripts/validate_submission.py exits 2
+        on the whole submission -- so an unread field cannot simply be blank.
+
+        Scoring is unaffected: a sentinel is wrong in exactly the same way an
+        empty string is. This runs after adjudication, never before, so a
+        sentinel can never be mistaken for a sponsor that exists or a date that
+        was actually read.
+        """
+        if not SPONSOR_RE.match(self.sponsor_id or ""):
+            self.sponsor_id = SENTINEL_SPONSOR
+        if not DATE_RE.match(self.arrival_date or ""):
+            self.arrival_date = SENTINEL_DATE
+        return self
 
     def to_json_line(self) -> str:
         d = asdict(self)

@@ -13,11 +13,17 @@ subset -- and subset tuning has already produced one overfit rule.
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import sys
 from concurrent.futures import ProcessPoolExecutor
 
 from mib_pipeline.evidence import read_packet
+
+# Caching is a local, offline step, so it may use every core available rather
+# than mirroring the 4-vCPU scoring host. Submission timing is measured from the
+# real pipeline, not from here.
+WORKERS = int(os.environ.get("MIB_CACHE_WORKERS", "8"))
 
 
 def extract_one(pdf_path: str) -> dict:
@@ -49,7 +55,7 @@ def main() -> int:
 
     done = 0
     with out_path.open("w", encoding="utf-8") as fh:
-        with ProcessPoolExecutor(max_workers=4) as pool:
+        with ProcessPoolExecutor(max_workers=WORKERS) as pool:
             for rec in pool.map(extract_one, [str(p) for p in pdfs], chunksize=4):
                 fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 done += 1

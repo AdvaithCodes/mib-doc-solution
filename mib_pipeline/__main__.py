@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     args.output_path.parent.mkdir(parents=True, exist_ok=True)
     with args.output_path.open("w", encoding="utf-8") as fh:
         for case_id in sorted(results):
-            fh.write(results[case_id].to_json_line() + "\n")
+            fh.write(results[case_id].finalize().to_json_line() + "\n")
 
     elapsed = time.perf_counter() - started
     per_pdf = elapsed / len(pdfs) if pdfs else 0.0
