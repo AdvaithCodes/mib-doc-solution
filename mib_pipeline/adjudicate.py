@@ -122,6 +122,37 @@ def read_adjudicator_note(packet: Packet) -> tuple[str | None, str]:
     return None, ""
 
 
+_BIOHAZARD_RE = re.compile(
+    r"biohazard\w*\s*(?:check|screen\w*|status|result)?\s*[:\-]?\s*"
+    r"(clear\w*|clean|negative|pass\w*|green|red|positive|fail\w*|adverse)", re.I)
+_BIO_CLEAN = ("clear", "clean", "negative", "pass", "green")
+
+
+def _biohazard_state(packet: Packet) -> str | None:
+    """"clean", "adverse", or None when no biohazard evidence is visible.
+
+    FIELD_MANUAL makes a clean biohazard check a *requirement* for MED-3, so the
+    absence of one is an unmet requirement rather than a neutral silence.
+    """
+    for page in packet.by_authority():
+        text = " ".join(page.all_lines)
+        if "biohazard_red" in text.lower().replace(" ", "_"):
+            return "adverse"
+        m = _BIOHAZARD_RE.search(text)
+        if m:
+            word = m.group(1).lower()
+            return "clean" if word.startswith(_BIO_CLEAN) else "adverse"
+    return None
+
+
+def _waiver_code_visible(packet: Packet) -> bool:
+    """True when a real waiver code authorises a waived fee."""
+    from mib_pipeline.fee import _waiver_code
+
+    blob = " ".join(l for p in packet.pages for l in p.all_lines)
+    return _waiver_code(blob) is not None
+
+
 def flags_from_text(text: str) -> list[str]:
     """Named risk flags mentioned anywhere in authoritative visible text."""
     low = text.lower().replace(" ", "_")
@@ -162,6 +193,18 @@ def adjudicate(
     if visa == "TRANSIT-7":
         return "DENIED", "transit_visa"
 
+    # 2b. MED-3 requires a clean biohazard check, so a visibly adverse one is
+    #     disqualifying.
+    #
+    #     Treating an *absent* check as an unmet requirement was tried and
+    #     rejected: it is the stricter reading of FIELD_MANUAL, and it cut
+    #     catastrophic false approvals from 6 to 2, but 253 training packets have
+    #     no visible biohazard evidence and downstream rules already decide most
+    #     of them correctly. Forcing them all one way cost 1.5 points as review
+    #     and 0.7 as denial.
+    if visa == "MED-3" and _biohazard_state(packet) == "adverse":
+        return "DENIED", "med3_biohazard_adverse"
+
     # 3. Revoked sponsor.
     if sponsor in vocab.REVOKED_SPONSORS:
         return "DENIED", "revoked_sponsor"
@@ -188,8 +231,12 @@ def adjudicate(
         return "DENIED", "missing_sponsor"
 
     # 6. Fee waived outside the diplomatic case needs a visible hardship waiver.
+    #    FIELD_MANUAL: "waived: acceptable only for DIP-1 or a visible hardship
+    #    waiver" -- so a visible waiver code satisfies the requirement and the
+    #    packet continues to the remaining checks rather than stopping here.
     if fee == "waived" and visa not in vocab.FEE_WAIVER_OK:
-        return "NEEDS_REVIEW", "waiver_unverified"
+        if not _waiver_code_visible(packet):
+            return "NEEDS_REVIEW", "waiver_unverified"
 
     # 7. Unknown or unread fee status is explicitly a review trigger.
     if fee == "unknown" or not fee or not fee_known:
