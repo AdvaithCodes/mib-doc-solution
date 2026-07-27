@@ -236,12 +236,23 @@ _OCR = None
 
 
 def _ocr_engine():
-    """Lazily construct the OCR engine, once per process."""
+    """Lazily construct the OCR engine, once per process.
+
+    RapidOCR ships intra_op_num_threads / inter_op_num_threads set to -1, which
+    tells ONNX Runtime to use every core. Parallelism here is at the process
+    level -- one worker per vCPU -- so leaving that default means each worker
+    also spawns a full thread pool. On the 4-vCPU scoring host that is 4
+    processes times 4 threads fighting over 4 cores, and the contention does not
+    show up as an error, only as blown wall-clock against the 6s/PDF budget.
+
+    ONNX Runtime does not honour OMP_NUM_THREADS for this, so it has to be set
+    explicitly.
+    """
     global _OCR
     if _OCR is None:
         from rapidocr_onnxruntime import RapidOCR
 
-        _OCR = RapidOCR()
+        _OCR = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1)
     return _OCR
 
 
