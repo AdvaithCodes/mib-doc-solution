@@ -11,8 +11,15 @@ WORKDIR /app
 
 # No apt packages: PDF rendering, image processing and OCR all ship as wheels.
 COPY requirements.txt /app/requirements.txt
+# rapidocr-onnxruntime depends on opencv-python, which needs libGL that slim
+# lacks. Removing it also deletes the shared cv2/ directory that
+# opencv-python-headless installed, so headless has to be reinstalled after the
+# uninstall -- otherwise `import cv2` fails at runtime even though pip lists the
+# package as present.
 RUN pip install --no-cache-dir -r /app/requirements.txt \
  && pip uninstall -y opencv-python \
+ && pip install --no-cache-dir --force-reinstall --no-deps \
+      opencv-python-headless==5.0.0.93 \
  && find /usr/local -name "__pycache__" -type d -prune -exec rm -rf {} + \
  && rm -rf /root/.cache
 
