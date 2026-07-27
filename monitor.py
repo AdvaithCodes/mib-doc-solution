@@ -181,10 +181,11 @@ def main() -> int:
 
     tracker = Tracker(pathlib.Path(args.cache))
     if args.once:
-        # A rate needs two samples; take a short second one so --once still
-        # reports throughput and ETA rather than a meaningless zero.
+        # A rate needs two samples separated by enough time to see new lines.
+        # The writer buffers roughly five records, so a short sample frequently
+        # observes no change and reports a misleading zero.
         tracker.poll()
-        time.sleep(2.0)
+        time.sleep(6.0)
 
     try:
         while True:
