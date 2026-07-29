@@ -17,7 +17,7 @@ import json
 import pathlib
 import sys
 
-from mib_pipeline.adjudicate import (adjudicate, flags_from_text,
+from mib_pipeline.adjudicate import (adjudicate, adjudicate_detail, flags_from_text,
                                      read_adjudicator_note, reference_receipt_date,
                                      registry_embargo, _parse_date)
 from mib_pipeline.evidence import Packet, Page, classify
@@ -66,9 +66,10 @@ def decide(packet: Packet, reference_date=None):
     if mined:
         have = {f for f in record["risk_flags"].split("|") if f and f != "none"}
         record["risk_flags"] = "|".join(sorted(have | mined))
-    decision, reason = adjudicate(record, packet, risk_known=risk_known,
-                                  fee_known=fee_known, fee_contested=fee_contested,
-                                  reference_date=reference_date)
+    decision, reason, denials, reviews, approvals = adjudicate_detail(
+        record, packet, risk_known=risk_known, fee_known=fee_known,
+        fee_contested=fee_contested, reference_date=reference_date)
+
     return record, decision, reason, confidence_for(decision, reason, record)
 
 
