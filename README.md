@@ -84,7 +84,11 @@ results.
 
 | Split | Total | Extraction | Classification | Calibration |
 | --- | ---: | ---: | ---: | ---: |
-| Public train (n=1000) | TBD | TBD | TBD | TBD |
+| Public train (n=1000) | 119.64 | 41.15 | 63.17 | 15.32 |
+| Held out (n=700, never tuned on) | 118.10 | 41.00 | 61.90 | 15.20 |
+
+Zero catastrophic false approvals. The held-out figure is the honest one: rules
+were tuned against the first 300 cases only.
 
 ## Continuous integration
 
@@ -92,6 +96,15 @@ results.
 under the scoring flags above on every push, so contract violations — writes
 outside `/tmp`, network access, argument handling, architecture mismatch — fail
 in CI rather than during scoring.
+
+## Attribution
+
+Three policy rules -- embargoed home worlds, revoked sponsors beyond the three
+published, and the stale-application rule -- were identified by reading
+[strobl/mib-doc-solution](https://github.com/strobl/mib-doc-solution), a public
+MIT-licensed entry to this challenge, and are reused with attribution per the
+challenge rules. No code was copied; the constants were re-derived from the
+public training labels. See `NOTICE.md`.
 
 ## Third-party components
 

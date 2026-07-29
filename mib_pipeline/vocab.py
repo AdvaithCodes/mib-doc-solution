@@ -47,9 +47,38 @@ REVIEW_FLAGS = (
 
 RISK_FLAGS = DISQUALIFYING_FLAGS + REVIEW_FLAGS
 
-# FIELD_MANUAL names three revoked sponsors and warns that others appear in
-# examples, so this is a floor rather than a complete list.
-REVOKED_SPONSORS = ("SPN-0007", "SPN-0139", "SPN-4040")
+# FIELD_MANUAL names three revoked sponsors and states plainly that "other
+# revoked sponsors may appear in examples", so the published list is a floor.
+# The remainder are inferred from the labeled training set, where each denies at
+# a rate indistinguishable from the published three:
+#
+#   SPN-0007  87% denied (published)   SPN-9090  85% denied (inferred)
+#   SPN-4040  75% denied (published)   SPN-7331  74% denied (inferred)
+#   SPN-0139  72% denied (published)   SPN-2718  72% denied (inferred)
+#
+# No other sponsor with a meaningful sample exceeds 50%.
+REVOKED_SPONSORS = (
+    "SPN-0007", "SPN-0139", "SPN-4040",      # published in FIELD_MANUAL
+    "SPN-2718", "SPN-7331", "SPN-9090",      # inferred from labeled examples
+)
+
+# PRD names a "prohibited home-world embargo" as a denial condition but the
+# public manual never lists the worlds. Inferred from labels, two worlds deny
+# without exception and a third denies except under diplomatic status:
+#
+#   TRAPPIST-1e     32/32 denied (100%)
+#   Eris Relay      18/18 denied (100%)
+#   Wolf-1061c      56/77 denied  (73%), and the survivors are DIP-1
+#
+# Every other home world sits between 32% and 47%, i.e. the base rate.
+EMBARGOED_WORLDS = ("TRAPPIST-1e", "Eris Relay")
+NON_DIPLOMATIC_EMBARGOED_WORLDS = ("Wolf-1061c",)
+
+# FIELD_MANUAL: "Applications are stale if the arrival date is more than 180
+# days before packet receipt, except for DIP-1 packets with a valid diplomatic
+# note." No packet prints a receipt date, so the reference is derived from the
+# input set itself -- see adjudicate.reference_receipt_date.
+STALE_AFTER_DAYS = 180
 
 # FIELD_MANUAL: maximum authorised stay per visa class, in Earth days.
 VISA_MAX_DAYS = {"XW-1": 30, "XW-2": 180}

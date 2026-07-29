@@ -1,3 +1,30 @@
+# Attribution
+
+## Ideas adopted from another public submission
+
+Three policy rules in this solution were identified by reading
+[strobl/mib-doc-solution](https://github.com/strobl/mib-doc-solution), a public
+MIT-licensed entry to the same challenge, and are reused here under that licence
+with attribution as the challenge rules require:
+
+1. **Embargoed home worlds** as a denial condition. PRD names a "prohibited
+   home-world embargo" without listing the worlds.
+2. **Revoked sponsors beyond the three published** in FIELD_MANUAL, which states
+   that others appear in the examples.
+3. **The stale-application rule**, applied using a receipt-date stand-in because
+   no packet prints a receipt date.
+
+No code was copied. The constants were re-derived independently from
+`data/train_labels.csv` and are documented with their measured denial rates in
+`mib_pipeline/vocab.py`.
+
+The receipt-date treatment differs deliberately: that solution pins the dataset's
+2026-07-07 snapshot date, which would misfire on any set assembled at a different
+time. This one derives the reference from the 95th percentile of arrival dates in
+the input set, so it adapts to the private test. On the public training set the
+two agree within two days, and the result is insensitive to the percentile
+between p90 and p99.
+
 # Third-Party Components
 
 All runtime dependencies are pinned in `requirements.txt` and vendored into the

@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import pathlib
 
-from mib_pipeline.adjudicate import adjudicate, flags_from_text, read_adjudicator_note
+from mib_pipeline.adjudicate import (adjudicate, flags_from_text,
+                                     read_adjudicator_note, _parse_date)
 from mib_pipeline.evidence import read_packet
 from mib_pipeline.fee import infer_fee_status
 from mib_pipeline.extract import resolve
@@ -30,19 +31,21 @@ from mib_pipeline.schema import Prediction
 # is maximally punished by any private-set case that breaks the pattern, and the
 # smoothing costs almost nothing on the large routes.
 _ROUTE_CONFIDENCE = {
-    "adjudicator_note": 0.98,       # 107/107
-    "disqualifying_flag": 0.93,     # 24/24
-    "transit_visa": 0.86,           # 17/18
-    "unpaid_fee": 0.78,             # 5/5
-    "review_flag": 0.71,            # 3/3
-    "clean": 0.64,                  # 7/10
-    "revoked_sponsor": 0.62,        # 8/12
-    "fee_contested": 0.60,          # 1/1
-    "missing_sponsor": 0.55,        # 4/7
-    "fee_unknown": 0.50,            # 27/54
-    "arrival_date_missing": 0.40,   # 0/1
-    "risk_unobserved": 0.33,        # 18/56
-    "missing": 0.33,                # 0/2
+    "adjudicator_note": 0.98,         # 107/107
+    "disqualifying_flag": 0.93,       # 24/24
+    "transit_visa": 0.86,             # 17/18
+    "clean": 0.75,                    # 7/8
+    "embargoed_home_world_nondip": 0.75,# 4/4
+    "embargoed_home_world": 0.75,     # 4/4
+    "unpaid_fee": 0.75,               # 4/4
+    "review_flag": 0.71,              # 3/3
+    "revoked_sponsor": 0.68,          # 15/21
+    "fee_contested": 0.60,            # 1/1
+    "stale_application": 0.60,        # 1/1
+    "fee_unknown": 0.54,              # 27/50
+    "missing_sponsor": 0.44,          # 2/5
+    "risk_unobserved": 0.38,          # 18/48
+    "missing": 0.33,                  # 0/2
 }
 
 # Routes not in the table are unmeasured; 0.5 asserts nothing either way.
@@ -59,12 +62,18 @@ SCORED_FIELDS = (
 )
 
 
-def process_case(pdf_path: str) -> Prediction | None:
-    path = pathlib.Path(pdf_path)
-    case_id = path.stem
+def extract_case(pdf_path: str):
+    """Read a packet and resolve its fields, without deciding anything yet.
 
-    packet = read_packet(str(path), case_id)
-    resolved = resolve(packet)
+    Adjudication is deferred because the stale-application rule needs a
+    receipt-date reference derived from the whole input set.
+    """
+    path = pathlib.Path(pdf_path)
+    packet = read_packet(str(path), path.stem)
+    return path.stem, packet, resolve(packet)
+
+
+def decide_case(case_id: str, packet, resolved, reference_date=None) -> Prediction | None:
 
     record = {f: (resolved[f].value if f in resolved else "") for f in SCORED_FIELDS}
 
@@ -96,6 +105,7 @@ def process_case(pdf_path: str) -> Prediction | None:
     decision, reason = adjudicate(
         record, packet, risk_known=risk_known,
         fee_known=fee_known, fee_contested=fee_contested,
+        reference_date=reference_date,
     )
 
     # A case_id read off the page is preferred, but the filename is authoritative

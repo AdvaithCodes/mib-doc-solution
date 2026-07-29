@@ -19,7 +19,8 @@ import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from mib_pipeline.pipeline import process_case
+from mib_pipeline.adjudicate import reference_receipt_date, _parse_date
+from mib_pipeline.pipeline import decide_case, extract_case
 from mib_pipeline.schema import Prediction
 
 # The scoring host gives 4 vCPUs. Leave the default at 4 but allow an override
@@ -54,17 +55,37 @@ def main(argv: list[str] | None = None) -> int:
     results: dict[str, Prediction] = {}
     failures: list[tuple[str, str]] = []
 
+    # Phase 1: extract every packet. Adjudication is deferred because the
+    # stale-application rule needs a receipt-date reference derived from the
+    # whole input set rather than from any single packet.
+    extracted = []
     with ProcessPoolExecutor(max_workers=WORKERS) as pool:
-        futures = {pool.submit(process_case, str(p)): p for p in pdfs}
+        futures = {pool.submit(extract_case, str(p)): p for p in pdfs}
         for fut in as_completed(futures):
             pdf = futures[fut]
             try:
-                pred = fut.result(timeout=CASE_TIMEOUT_S)
+                extracted.append(fut.result(timeout=CASE_TIMEOUT_S))
             except Exception as exc:  # one bad packet must not sink the run
                 failures.append((pdf.stem, f"{type(exc).__name__}: {exc}"))
+
+    arrivals = []
+    for _cid, _pkt, _resolved in extracted:
+        if "arrival_date" in _resolved:
+            _d = _parse_date(_resolved["arrival_date"].value)
+            if _d:
+                arrivals.append(_d)
+    reference = reference_receipt_date(arrivals)
+    print(f"reference receipt date: {reference}", file=sys.stderr)
+
+    # Phase 2: decide.
+    for case_id, packet, resolved in extracted:
+            try:
+                pred = decide_case(case_id, packet, resolved, reference)
+            except Exception as exc:
+                failures.append((case_id, f"{type(exc).__name__}: {exc}"))
                 continue
             if pred is None:
-                failures.append((pdf.stem, "no trustworthy answer"))
+                failures.append((case_id, "no trustworthy answer"))
                 continue
             problems = pred.validate()
             if problems:

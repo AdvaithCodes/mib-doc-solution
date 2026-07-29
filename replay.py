@@ -17,7 +17,9 @@ import json
 import pathlib
 import sys
 
-from mib_pipeline.adjudicate import adjudicate, flags_from_text, read_adjudicator_note
+from mib_pipeline.adjudicate import (adjudicate, flags_from_text,
+                                     read_adjudicator_note, reference_receipt_date,
+                                     _parse_date)
 from mib_pipeline.evidence import Packet, Page, classify
 from mib_pipeline.extract import resolve
 from mib_pipeline.fee import infer_fee_status
@@ -47,7 +49,7 @@ def load(cache_path: str):
         yield packet
 
 
-def decide(packet: Packet):
+def decide(packet: Packet, reference_date=None):
     resolved = resolve(packet)
     record = {f: (resolved[f].value if f in resolved else "") for f in SCORED_FIELDS}
     risk_known = bool(record["risk_flags"])
@@ -62,7 +64,8 @@ def decide(packet: Packet):
             have = {f for f in record["risk_flags"].split("|") if f and f != "none"}
             record["risk_flags"] = "|".join(sorted(have | set(mined)))
     decision, reason = adjudicate(record, packet, risk_known=risk_known,
-                                  fee_known=fee_known, fee_contested=fee_contested)
+                                  fee_known=fee_known, fee_contested=fee_contested,
+                                  reference_date=reference_date)
     return record, decision, reason, confidence_for(decision, reason, record)
 
 
@@ -95,11 +98,24 @@ def main() -> int:
     predictions = {}
     routes = collections.defaultdict(lambda: [0, 0])
 
-    for idx, packet in enumerate(load(args.cache)):
+    # Pass 1: the stale-application rule needs a receipt-date reference derived
+    # from the whole input set, so arrival dates are collected before deciding.
+    packets = list(load(args.cache))
+    arrivals = []
+    for pk in packets:
+        rec = resolve(pk)
+        if "arrival_date" in rec:
+            d = _parse_date(rec["arrival_date"].value)
+            if d:
+                arrivals.append(d)
+    reference = reference_receipt_date(arrivals)
+    print(f"reference receipt date: {reference}", file=sys.stderr)
+
+    for idx, packet in enumerate(packets):
         t = truth.get(packet.case_id)
         if not t:
             continue
-        record, decision, reason, conf = decide(packet)
+        record, decision, reason, conf = decide(packet, reference)
 
         if args.predict:
             pred = Prediction(case_id=packet.case_id, adjudication=decision,
