@@ -2,7 +2,7 @@
 
 Public training set, 1000 cases:
   challenge baseline   50.77/150   (NEEDS_REVIEW everywhere, no extraction)
-  this pipeline       116.57/150   (115.02 on the 700 cases held out of tuning)
+  this pipeline       120.42/150   (118.91 on the 700 cases held out of tuning)
 
 The fit/holdout gap is real and worth watching: rules tuned against the first
 300 cases score about 6 points higher there than on cases never used for tuning.
@@ -33,19 +33,19 @@ from mib_pipeline.schema import Prediction
 # smoothing costs almost nothing on the large routes.
 _ROUTE_CONFIDENCE = {
     "adjudicator_note": 0.98,         # 107/107
-    "disqualifying_flag": 0.93,       # 24/24
-    "transit_visa": 0.86,             # 17/18
+    "disqualifying_flag": 0.94,       # 27/27
+    "transit_visa": 0.86,             # 16/17
     "clean": 0.75,                    # 7/8
     "embargoed_home_world_nondip": 0.75,# 4/4
-    "embargoed_home_world": 0.75,     # 4/4
     "unpaid_fee": 0.75,               # 4/4
+    "stale_application": 0.73,        # 6/7
     "review_flag": 0.71,              # 3/3
     "revoked_sponsor": 0.68,          # 15/21
+    "embargoed_home_world": 0.67,     # 2/2
     "fee_contested": 0.60,            # 1/1
-    "stale_application": 0.60,        # 1/1
-    "fee_unknown": 0.54,              # 27/50
+    "fee_unknown": 0.54,              # 26/48
     "missing_sponsor": 0.44,          # 2/5
-    "risk_unobserved": 0.38,          # 18/48
+    "risk_unobserved": 0.42,          # 18/44
     "missing": 0.33,                  # 0/2
 }
 

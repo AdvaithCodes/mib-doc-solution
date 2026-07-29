@@ -212,130 +212,122 @@ def _parse_date(value: str) -> date | None:
         return None
 
 
-def adjudicate(
+def adjudicate_detail(
     record: dict[str, str],
     packet: Packet,
     risk_known: bool = True,
     fee_known: bool = True,
     fee_contested: bool = False,
     reference_date: date | None = None,
-) -> tuple[str, str]:
-    """Return (decision, reason). Reason is retained for calibration and debugging."""
+) -> tuple[str, str, list, list, list]:
+    """Return (decision, reason, denials, reviews, approvals).
+
+    Every rule contributes to one of three buckets rather than returning early.
+    A first-match ordering cannot distinguish a packet with three independent
+    denial grounds from one with a single weak ground, nor "approved because
+    every check passed" from "approved because nothing happened to fire" -- and
+    the reason it reports is an artifact of rule order rather than of evidence.
+
+    Resolution is denials first, then doubts, then approval, which follows the
+    scoring asymmetry: a false approval costs -4 where routing to review costs
+    at worst a 6-point swing.
+    """
     note_decision, note_text = read_adjudicator_note(packet)
     if note_decision in ("APPROVED", "DENIED", "NEEDS_REVIEW"):
-        return note_decision, "adjudicator_note"
+        return note_decision, "adjudicator_note", [], [], ["adjudicator_note"]
+
+    denials: list[str] = []
+    reviews: list[str] = []
+    approvals: list[str] = []
 
     flags = [f for f in record.get("risk_flags", "").split("|") if f and f != "none"]
     visa = record.get("visa_class", "")
     fee = record.get("fee_status", "")
     sponsor = record.get("sponsor_id", "")
-
-    # 1. Disqualifying flags deny outright.
-    disqualifying = [f for f in flags if f in vocab.DISQUALIFYING_FLAGS]
-    if disqualifying:
-        return "DENIED", f"disqualifying_flag:{disqualifying[0]}"
-
-    # 2. TRANSIT-7 carries no work authorisation.
-    if visa == "TRANSIT-7":
-        return "DENIED", "transit_visa"
-
-    # 2a. Embargoed home world. PRD lists a "prohibited home-world embargo" as a
-    #     denial condition without naming the worlds; they are inferred from
-    #     labeled examples (see vocab). Two deny unconditionally, one denies
-    #     except under diplomatic status.
     world = record.get("home_world", "")
+
+    # --- disqualifying conditions ---
+    for flag in (f for f in flags if f in vocab.DISQUALIFYING_FLAGS):
+        denials.append(f"disqualifying_flag:{flag}")
+
+    if visa == "TRANSIT-7":
+        denials.append("transit_visa")
+
     if world in vocab.EMBARGOED_WORLDS:
-        return "DENIED", "embargoed_home_world"
-    if world in vocab.NON_DIPLOMATIC_EMBARGOED_WORLDS and visa and visa != "DIP-1":
-        return "DENIED", "embargoed_home_world_nondip"
+        denials.append("embargoed_home_world")
+    elif world in vocab.NON_DIPLOMATIC_EMBARGOED_WORLDS and visa and visa != "DIP-1":
+        denials.append("embargoed_home_world_nondip")
 
-    # 2b. MED-3 requires a clean biohazard check, so a visibly adverse one is
-    #     disqualifying.
-    #
-    #     Treating an *absent* check as an unmet requirement was tried and
-    #     rejected: it is the stricter reading of FIELD_MANUAL, and it cut
-    #     catastrophic false approvals from 6 to 2, but 253 training packets have
-    #     no visible biohazard evidence and downstream rules already decide most
-    #     of them correctly. Forcing them all one way cost 1.5 points as review
-    #     and 0.7 as denial.
-    if visa == "MED-3" and _biohazard_state(packet) == "adverse":
-        return "DENIED", "med3_biohazard_adverse"
-
-    # 3. Revoked sponsor.
     if sponsor in vocab.REVOKED_SPONSORS:
-        return "DENIED", "revoked_sponsor"
+        denials.append("revoked_sponsor")
+    elif sponsor:
+        approvals.append("sponsor_present")
 
-    # 4. Unpaid fee denies unless a visible waiver applies. Contested fee
-    #    evidence (zero owed with nothing authorising it) is contradictory,
-    #    which FIELD_MANUAL routes to review rather than to a denial.
+    if visa == "MED-3" and _biohazard_state(packet) == "adverse":
+        denials.append("med3_biohazard_adverse")
+
+    # --- fee ---
     if fee_contested:
-        return "NEEDS_REVIEW", "fee_contested"
-    if fee == "unpaid":
-        if not re.search(r"waiver", note_text, re.I):
-            return "DENIED", "unpaid_fee"
-        return "NEEDS_REVIEW", "unpaid_fee_with_waiver_claim"
+        reviews.append("fee_contested")
+    elif fee == "unpaid":
+        if re.search(r"waiver", note_text, re.I):
+            reviews.append("unpaid_fee_with_waiver_claim")
+        else:
+            denials.append("unpaid_fee")
+    elif fee == "paid":
+        approvals.append("fee_paid")
+    elif fee == "waived":
+        if visa in vocab.FEE_WAIVER_OK or _waiver_code_visible(packet):
+            approvals.append("valid_fee_waiver")
+        else:
+            reviews.append("waiver_unverified")
+    elif fee == "unknown" or not fee or not fee_known:
+        reviews.append("fee_unknown")
 
-    # --- everything below is a doubt, and doubt routes to review ---
-
-    # 5. No valid sponsor, outside the diplomatic exemption. FIELD_MANUAL makes
-    #    this a requirement rather than a doubt: "An applicant needs a valid
-    #    SPN-#### sponsor unless they are applying under DIP-1." Measured on the
-    #    full training set this route is 16 APPROVED / 25 DENIED / 7 REVIEW, so
-    #    denying scores 207 raw against 138 for routing to review, and it is what
-    #    the published policy says.
+    # --- sponsor requirement ---
     if not sponsor and visa != "DIP-1":
-        return "DENIED", "missing_sponsor"
+        denials.append("missing_sponsor")
+    elif visa == "DIP-1":
+        approvals.append("diplomatic_sponsor_exemption")
 
-    # 6. Fee waived outside the diplomatic case needs a visible hardship waiver.
-    #    FIELD_MANUAL: "waived: acceptable only for DIP-1 or a visible hardship
-    #    waiver" -- so a visible waiver code satisfies the requirement and the
-    #    packet continues to the remaining checks rather than stopping here.
-    if fee == "waived" and visa not in vocab.FEE_WAIVER_OK:
-        if not _waiver_code_visible(packet):
-            return "NEEDS_REVIEW", "waiver_unverified"
-
-    # 7. Unknown or unread fee status is explicitly a review trigger.
-    if fee == "unknown" or not fee or not fee_known:
-        return "NEEDS_REVIEW", "fee_unknown"
-
-    # 8. Review-only flags.
-    review_flags = [f for f in flags if f in vocab.REVIEW_FLAGS]
-    if review_flags:
-        return "NEEDS_REVIEW", f"review_flag:{review_flags[0]}"
-
-    # 9. Risk was never actually observed. "No flags read" is not "no flags":
-    #    on train, every measured false approval approved on an unread flag
-    #    field. Approving there is the -4 case; review costs +2 at worst.
-    if not risk_known:
-        return "NEEDS_REVIEW", "risk_unobserved"
-
-    # 10. Missing or unreadable arrival date.
+    # --- dates ---
     arrival = _parse_date(record.get("arrival_date", ""))
     if arrival is None:
-        return "NEEDS_REVIEW", "arrival_date_missing"
-
-    # 10a. Stale application. FIELD_MANUAL: stale if the arrival date is more
-    #      than 180 days before packet receipt, except for DIP-1 with a valid
-    #      diplomatic note. No packet prints a receipt date, so the reference is
-    #      derived from the input set (see reference_receipt_date) rather than
-    #      hardcoded to one dataset snapshot -- a fixed date would misfire on any
-    #      set generated at a different time.
-    if reference_date is not None:
-        age_days = (reference_date - arrival).days
-        if age_days > vocab.STALE_AFTER_DAYS:
+        reviews.append("arrival_date_missing")
+    elif reference_date is not None:
+        if (reference_date - arrival).days > vocab.STALE_AFTER_DAYS:
             if visa == "DIP-1":
-                # 16 stale DIP-1 packets on train: 13 approved, 3 review, 0
-                # denied. The exemption holds, so fall through to the remaining
-                # checks rather than denying.
-                pass
+                approvals.append("stale_diplomatic_exemption")
             else:
-                # 36 stale non-DIP packets on train, all 36 denied.
-                return "DENIED", "stale_application"
+                denials.append("stale_application")
+        else:
+            approvals.append("application_current")
 
-    # 11. Any critical field we could not read at all.
-    for fieldname in ("applicant_name", "species_code", "home_world", "visa_class"):
+    # --- risk ---
+    for flag in (f for f in flags if f in vocab.REVIEW_FLAGS):
+        reviews.append(f"review_flag:{flag}")
+    if not risk_known:
+        reviews.append("risk_unobserved")
+    elif not flags:
+        approvals.append("no_visible_risk")
+
+    # --- every scored field must actually have been read ---
+    for fieldname in ("applicant_name", "species_code", "home_world", "visa_class",
+                      "declared_purpose"):
         if not record.get(fieldname):
-            return "NEEDS_REVIEW", f"missing:{fieldname}"
+            reviews.append(f"missing:{fieldname}")
 
-    # 12. Positive approval: identity, sponsor, fee, visa and risk all clean.
-    return "APPROVED", "clean"
+    if denials:
+        return "DENIED", denials[0], denials, reviews, approvals
+    if reviews:
+        return "NEEDS_REVIEW", reviews[0], denials, reviews, approvals
+    return "APPROVED", "clean", denials, reviews, approvals
+
+
+def adjudicate(record, packet, risk_known=True, fee_known=True,
+               fee_contested=False, reference_date=None) -> tuple[str, str]:
+    """Decision and primary reason only; see adjudicate_detail for the buckets."""
+    decision, reason, _d, _r, _a = adjudicate_detail(
+        record, packet, risk_known=risk_known, fee_known=fee_known,
+        fee_contested=fee_contested, reference_date=reference_date)
+    return decision, reason
