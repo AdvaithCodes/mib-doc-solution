@@ -19,7 +19,7 @@ import sys
 
 from mib_pipeline.adjudicate import (adjudicate, flags_from_text,
                                      read_adjudicator_note, reference_receipt_date,
-                                     _parse_date)
+                                     registry_embargo, _parse_date)
 from mib_pipeline.evidence import Packet, Page, classify
 from mib_pipeline.extract import resolve
 from mib_pipeline.fee import infer_fee_status
@@ -58,11 +58,13 @@ def decide(packet: Packet, reference_date=None):
     record["fee_status"], fee_known, fee_contested = infer_fee_status(
         packet, literal=record["fee_status"])
     _, note_text = read_adjudicator_note(packet)
-    if note_text:
-        mined = flags_from_text(note_text)
-        if mined:
-            have = {f for f in record["risk_flags"].split("|") if f and f != "none"}
-            record["risk_flags"] = "|".join(sorted(have | set(mined)))
+    mined = set(flags_from_text(note_text)) if note_text else set()
+    if registry_embargo(packet):
+        mined.add("planetary_embargo")
+        risk_known = True
+    if mined:
+        have = {f for f in record["risk_flags"].split("|") if f and f != "none"}
+        record["risk_flags"] = "|".join(sorted(have | mined))
     decision, reason = adjudicate(record, packet, risk_known=risk_known,
                                   fee_known=fee_known, fee_contested=fee_contested,
                                   reference_date=reference_date)

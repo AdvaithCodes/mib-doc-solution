@@ -26,14 +26,16 @@ from dataclasses import dataclass, field
 
 warnings.filterwarnings("ignore")
 
+import cv2
 import numpy as np
 import pdfplumber
 import pypdfium2 as pdfium
 
-# Rendering resolution. Measured: 150 dpi costs 0.354s/page and yields as much
-# text as 200 dpi, which costs 28% more. Higher DPI is reserved for targeted
-# re-reads of damaged regions.
-RENDER_DPI = 150
+# Rendering resolution. 150 dpi and 200 dpi yield the same *total* character
+# count, which is what an early measurement compared -- but that average is
+# dominated by clean pages. On damaged pages the extra resolution is what makes
+# the difference between a readable field and a lost one.
+RENDER_DPI = 200
 
 # A page whose visible text layer is at or below this many characters carries
 # only the "Packet MIB-xxxxxx / page N" boilerplate; its content is in the raster.
@@ -60,8 +62,13 @@ DOC_PATTERNS = (
     ("sponsor_letter", re.compile(r"SPONSORATTESTATION", re.I)),
     ("registry_extract", re.compile(r"PLANETARYREGISTRY", re.I)),
     ("fee_receipt", re.compile(r"MIBFEERECEIPT|FEERECEIPT", re.I)),
-    ("passport_image", re.compile(r"PASSPORTIMAGE", re.I)),
 )
+
+# "PASSPORT IMAGE" is a caption printed beside a photo, not a document heading:
+# it appears on intake forms alongside their real title. Matching it early
+# demotes a rank-2 intake form to rank 7, so it is only consulted once every
+# other signal has failed.
+_PASSPORT_RE = re.compile(r"PASSPORTIMAGE|SCANIMAGE|REGISTRYIMAGE", re.I)
 
 _BOILERPLATE_RE = re.compile(
     r"packet\s*MIB-?\d{6}\s*/?\s*page\s*\d+|synthetic\s*hiring\s*challenge",
@@ -180,7 +187,6 @@ HEADINGS = (
     ("registry_extract", "PLANETARYREGISTRYEXTRACT"),
     ("adjudicator_note", "MANUALADJUDICATORNOTE"),
     ("fee_receipt", "MIBFEERECEIPT"),
-    ("passport_image", "PASSPORTIMAGE"),
 )
 
 _FUZZY_HEADING_MIN = 0.62
@@ -220,7 +226,11 @@ def classify(lines: list[str]) -> str:
             return name
 
     fuzzy = _best_heading(re.sub(r"[^A-Z0-9]", "", "".join(lines[:5]).upper()))
-    return fuzzy or "unknown"
+    if fuzzy:
+        return fuzzy
+    if _PASSPORT_RE.search(body):
+        return "passport_image"
+    return "unknown"
 
 
 def _clean(lines: list[str]) -> list[str]:
@@ -297,8 +307,54 @@ def _ocr_engine():
     return _OCR
 
 
+def _estimate_skew(gray: np.ndarray) -> float:
+    """Skew angle in degrees, by maximising the variance of the ink row profile.
+
+    A correctly aligned page concentrates ink into distinct text rows, so the
+    row-sum profile has high variance; a rotated page smears ink across rows and
+    flattens it. Searching +/-3 degrees covers the scan skew present in this
+    corpus.
+
+    Returns 0.0 unless the best candidate clearly beats no rotation, so a
+    straight page is never rotated on noise.
+    """
+    small = cv2.resize(gray, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+    if int(np.count_nonzero(small < 210)) < 50:
+        return 0.0
+
+    def variance(angle: float) -> float:
+        if angle == 0.0:
+            rotated = small
+        else:
+            h, w = small.shape
+            matrix = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+            rotated = cv2.warpAffine(small, matrix, (w, h),
+                                     flags=cv2.INTER_LINEAR,
+                                     borderMode=cv2.BORDER_CONSTANT,
+                                     borderValue=255)
+        return float(np.var((rotated < 210).sum(axis=1).astype(np.float64)))
+
+    candidates = [i / 2.0 for i in range(-6, 7)]
+    scores = {c: variance(c) for c in candidates}
+    best = max(candidates, key=lambda c: (scores[c], -abs(c)))
+    if abs(best) < 0.25 or scores[best] <= scores[0.0] * 1.05:
+        return 0.0
+    return best
+
+
+def _deskew(image: np.ndarray) -> np.ndarray:
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) if image.ndim == 3 else image
+    angle = _estimate_skew(gray)
+    if angle == 0.0:
+        return image
+    h, w = image.shape[:2]
+    matrix = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+    return cv2.warpAffine(image, matrix, (w, h), flags=cv2.INTER_LINEAR,
+                          borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
+
+
 def _ocr_at(doc, index: int, dpi: int) -> list[str]:
-    image = np.array(doc[index].render(scale=dpi / 72).to_pil())
+    image = _deskew(np.array(doc[index].render(scale=dpi / 72).to_pil()))
     result, _ = _ocr_engine()(image)
     if not result:
         return []

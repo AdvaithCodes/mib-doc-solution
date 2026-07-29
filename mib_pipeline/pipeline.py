@@ -13,7 +13,8 @@ from __future__ import annotations
 import pathlib
 
 from mib_pipeline.adjudicate import (adjudicate, flags_from_text,
-                                     read_adjudicator_note, _parse_date)
+                                     read_adjudicator_note, registry_embargo,
+                                     _parse_date)
 from mib_pipeline.evidence import read_packet
 from mib_pipeline.fee import infer_fee_status
 from mib_pipeline.extract import resolve
@@ -96,11 +97,17 @@ def decide_case(case_id: str, packet, resolved, reference_date=None) -> Predicti
     # text names them explicitly ("Disqualifying risk flag: planetary_embargo"),
     # so mine it before adjudicating.
     note_decision, note_text = read_adjudicator_note(packet)
-    if note_text:
-        mined = flags_from_text(note_text)
-        if mined:
-            existing = {f for f in record["risk_flags"].split("|") if f and f != "none"}
-            record["risk_flags"] = "|".join(sorted(existing | set(mined)))
+    mined = set(flags_from_text(note_text)) if note_text else set()
+
+    # A registry extract reporting an embargo is direct visible evidence of the
+    # planetary_embargo flag, which FIELD_MANUAL lists as disqualifying.
+    if registry_embargo(packet):
+        mined.add("planetary_embargo")
+        risk_known = True
+
+    if mined:
+        existing = {f for f in record["risk_flags"].split("|") if f and f != "none"}
+        record["risk_flags"] = "|".join(sorted(existing | mined))
 
     decision, reason = adjudicate(
         record, packet, risk_known=risk_known,
