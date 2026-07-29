@@ -2,7 +2,7 @@
 
 Public training set, 1000 cases:
   challenge baseline   50.77/150   (NEEDS_REVIEW everywhere, no extraction)
-  this pipeline       120.53/150   (119.00 on the 700 cases held out of tuning)
+  this pipeline       121.77/150   (120.43 on the 700 cases held out of tuning)
 
 The fit/holdout gap is real and worth watching: rules tuned against the first
 300 cases score about 6 points higher there than on cases never used for tuning.
@@ -12,12 +12,13 @@ from __future__ import annotations
 
 import pathlib
 
-from mib_pipeline.adjudicate import (adjudicate, flags_from_text,
+from mib_pipeline.adjudicate import (adjudicate_detail, flags_from_text,
                                      read_adjudicator_note, registry_embargo,
                                      _parse_date)
 from mib_pipeline.evidence import read_packet
 from mib_pipeline.fee import infer_fee_status
 from mib_pipeline.extract import resolve
+from mib_pipeline.resolver import Resolver, evidence_keys
 from mib_pipeline.schema import Prediction
 
 # Calibrated confidence per decision route.
@@ -51,6 +52,15 @@ _ROUTE_CONFIDENCE = {
 
 # Routes not in the table are unmeasured; 0.5 asserts nothing either way.
 _DEFAULT_CONFIDENCE = 0.50
+
+_RESOLVER_CACHE: list = []
+
+
+def _resolver():
+    """Load the fitted resolver table once per process."""
+    if not _RESOLVER_CACHE:
+        _RESOLVER_CACHE.append(Resolver.load())
+    return _RESOLVER_CACHE[0]
 
 
 def confidence_for(decision: str, reason: str, record: dict[str, str]) -> float:
@@ -109,17 +119,29 @@ def decide_case(case_id: str, packet, resolved, reference_date=None) -> Predicti
         existing = {f for f in record["risk_flags"].split("|") if f and f != "none"}
         record["risk_flags"] = "|".join(sorted(existing | mined))
 
-    decision, reason = adjudicate(
+    decision, reason, _denials, reviews, approvals = adjudicate_detail(
         record, packet, risk_known=risk_known,
         fee_known=fee_known, fee_contested=fee_contested,
         reference_date=reference_date,
     )
+
+    # The resolver supplies per-bucket calibrated confidence; it leaves the
+    # decision alone in practice (see resolver.py).
+    confidence = None
+    resolver = _resolver()
+    if resolver is not None:
+        chosen = resolver.resolve(
+            decision, reason, evidence_keys(reason, record, reviews, approvals))
+        if chosen is not None:
+            decision, confidence = chosen
+    if confidence is None:
+        confidence = confidence_for(decision, reason, record)
 
     # A case_id read off the page is preferred, but the filename is authoritative
     # for identifying which case this prediction answers.
     return Prediction(
         case_id=case_id,
         adjudication=decision,
-        confidence=confidence_for(decision, reason, record),
+        confidence=confidence,
         **record,
     )

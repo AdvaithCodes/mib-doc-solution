@@ -50,7 +50,8 @@ def load(cache_path: str):
         yield packet
 
 
-def decide(packet: Packet, reference_date=None):
+def rule_state(packet: Packet, reference_date=None):
+    """Everything the rules produce for one packet, before any resolver."""
     resolved = resolve(packet)
     record = {f: (resolved[f].value if f in resolved else "") for f in SCORED_FIELDS}
     risk_known = bool(record["risk_flags"])
@@ -69,7 +70,33 @@ def decide(packet: Packet, reference_date=None):
     decision, reason, denials, reviews, approvals = adjudicate_detail(
         record, packet, risk_known=risk_known, fee_known=fee_known,
         fee_contested=fee_contested, reference_date=reference_date)
+    return record, decision, reason, denials, reviews, approvals
 
+
+_RESOLVER_CACHE: list = []
+
+
+def _resolver():
+    """Load the fitted table once. MIB_NO_RESOLVER=1 disables it for A/B runs."""
+    if not _RESOLVER_CACHE:
+        import os
+        from mib_pipeline.resolver import Resolver
+        _RESOLVER_CACHE.append(None if os.environ.get("MIB_NO_RESOLVER")
+                               else Resolver.load())
+    return _RESOLVER_CACHE[0]
+
+
+def decide(packet: Packet, reference_date=None):
+    record, decision, reason, denials, reviews, approvals = rule_state(
+        packet, reference_date)
+
+    resolver = _resolver()
+    if resolver is not None:
+        from mib_pipeline.resolver import evidence_keys
+        chosen = resolver.resolve(decision, reason,
+                                  evidence_keys(reason, record, reviews, approvals))
+        if chosen is not None:
+            return record, chosen[0], reason, chosen[1]
     return record, decision, reason, confidence_for(decision, reason, record)
 
 

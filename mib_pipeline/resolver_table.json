@@ -1,0 +1,904 @@
+{
+ "buckets": {
+  "clean": {
+   "APPROVED": 6,
+   "NEEDS_REVIEW": 1
+  },
+  "clean|fee=paid|support=4|doubts=0": {
+   "APPROVED": 5
+  },
+  "clean|fee=paid|visa=DIP-1|risk=clear": {
+   "APPROVED": 2
+  },
+  "clean|fee=paid|visa=XW-1|risk=clear": {
+   "APPROVED": 3
+  },
+  "clean|fee=waived|support=4|doubts=0": {
+   "APPROVED": 1,
+   "NEEDS_REVIEW": 1
+  },
+  "clean|fee=waived|visa=DIP-1|risk=clear": {
+   "APPROVED": 1
+  },
+  "clean|fee=waived|visa=XW-2|risk=clear": {
+   "NEEDS_REVIEW": 1
+  },
+  "clean|risk=clear": {
+   "APPROVED": 6,
+   "NEEDS_REVIEW": 1
+  },
+  "clean|support=4|doubts=0": {
+   "APPROVED": 6,
+   "NEEDS_REVIEW": 1
+  },
+  "clean|visa=DIP-1|risk=clear": {
+   "APPROVED": 3
+  },
+  "clean|visa=XW-1|risk=clear": {
+   "APPROVED": 3
+  },
+  "clean|visa=XW-2|risk=clear": {
+   "NEEDS_REVIEW": 1
+  },
+  "disqualifying_flag": {
+   "DENIED": 27
+  },
+  "disqualifying_flag|fee=paid|support=3|doubts=0": {
+   "DENIED": 7
+  },
+  "disqualifying_flag|fee=paid|support=3|doubts=1": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|fee=paid|support=4|doubts=0": {
+   "DENIED": 4
+  },
+  "disqualifying_flag|fee=paid|visa=DIP-1|risk=flagged": {
+   "DENIED": 4
+  },
+  "disqualifying_flag|fee=paid|visa=MED-3|risk=flagged": {
+   "DENIED": 6
+  },
+  "disqualifying_flag|fee=paid|visa=XW-1|risk=flagged": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|fee=paid|visa=XW-2|risk=flagged": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=unknown|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=unknown|support=2|doubts=1": {
+   "DENIED": 6
+  },
+  "disqualifying_flag|fee=unknown|support=2|doubts=2": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|fee=unknown|visa=MED-3|risk=flagged": {
+   "DENIED": 5
+  },
+  "disqualifying_flag|fee=unknown|visa=XW-1|risk=flagged": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=unknown|visa=XW-2|risk=flagged": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|fee=unknown|visa=none|risk=flagged": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=waived|support=2|doubts=1": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|fee=waived|support=3|doubts=0": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|fee=waived|support=4|doubts=0": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=waived|visa=DIP-1|risk=flagged": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=waived|visa=MED-3|risk=flagged": {
+   "DENIED": 4
+  },
+  "disqualifying_flag|risk=flagged": {
+   "DENIED": 27
+  },
+  "disqualifying_flag|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|support=2|doubts=1": {
+   "DENIED": 8
+  },
+  "disqualifying_flag|support=2|doubts=2": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|support=3|doubts=0": {
+   "DENIED": 9
+  },
+  "disqualifying_flag|support=3|doubts=1": {
+   "DENIED": 2
+  },
+  "disqualifying_flag|support=4|doubts=0": {
+   "DENIED": 5
+  },
+  "disqualifying_flag|visa=DIP-1|risk=flagged": {
+   "DENIED": 5
+  },
+  "disqualifying_flag|visa=MED-3|risk=flagged": {
+   "DENIED": 15
+  },
+  "disqualifying_flag|visa=XW-1|risk=flagged": {
+   "DENIED": 3
+  },
+  "disqualifying_flag|visa=XW-2|risk=flagged": {
+   "DENIED": 3
+  },
+  "disqualifying_flag|visa=none|risk=flagged": {
+   "DENIED": 1
+  },
+  "embargoed_home_world": {
+   "DENIED": 2
+  },
+  "embargoed_home_world_nondip": {
+   "DENIED": 5
+  },
+  "embargoed_home_world_nondip|fee=paid|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=paid|support=2|doubts=2": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=paid|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=paid|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=unknown|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=unknown|support=2|doubts=2": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=unknown|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=unknown|visa=XW-2|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=waived|support=1|doubts=2": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=waived|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|risk=clear": {
+   "DENIED": 5
+  },
+  "embargoed_home_world_nondip|support=1|doubts=2": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|support=1|doubts=3": {
+   "DENIED": 2
+  },
+  "embargoed_home_world_nondip|support=2|doubts=2": {
+   "DENIED": 2
+  },
+  "embargoed_home_world_nondip|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|visa=XW-1|risk=clear": {
+   "DENIED": 3
+  },
+  "embargoed_home_world_nondip|visa=XW-2|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|fee=unknown|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|fee=unknown|visa=none|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|fee=waived|support=3|doubts=1": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|fee=waived|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|risk=clear": {
+   "DENIED": 2
+  },
+  "embargoed_home_world|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|support=3|doubts=1": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "embargoed_home_world|visa=none|risk=clear": {
+   "DENIED": 1
+  },
+  "fee_contested": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_contested|fee=unknown|support=4|doubts=1": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_contested|fee=unknown|visa=DIP-1|risk=clear": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_contested|risk=clear": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_contested|support=4|doubts=1": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_contested|visa=DIP-1|risk=clear": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_unknown": {
+   "APPROVED": 16,
+   "DENIED": 5,
+   "NEEDS_REVIEW": 26
+  },
+  "fee_unknown|fee=unknown|support=1|doubts=3": {
+   "APPROVED": 2,
+   "DENIED": 3,
+   "NEEDS_REVIEW": 2
+  },
+  "fee_unknown|fee=unknown|support=2|doubts=2": {
+   "APPROVED": 5,
+   "NEEDS_REVIEW": 10
+  },
+  "fee_unknown|fee=unknown|support=2|doubts=3": {
+   "APPROVED": 1,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|fee=unknown|support=3|doubts=1": {
+   "APPROVED": 3,
+   "DENIED": 2,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|fee=unknown|support=3|doubts=2": {
+   "APPROVED": 2,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|fee=unknown|support=3|doubts=3": {
+   "NEEDS_REVIEW": 2
+  },
+  "fee_unknown|fee=unknown|support=4|doubts=1": {
+   "APPROVED": 3,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|fee=unknown|visa=DIP-1|risk=clear": {
+   "APPROVED": 6,
+   "NEEDS_REVIEW": 8
+  },
+  "fee_unknown|fee=unknown|visa=DIP-1|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_unknown|fee=unknown|visa=MED-3|risk=clear": {
+   "APPROVED": 4,
+   "DENIED": 1,
+   "NEEDS_REVIEW": 7
+  },
+  "fee_unknown|fee=unknown|visa=XW-1|risk=clear": {
+   "APPROVED": 3,
+   "DENIED": 2,
+   "NEEDS_REVIEW": 2
+  },
+  "fee_unknown|fee=unknown|visa=XW-2|risk=clear": {
+   "APPROVED": 3,
+   "DENIED": 1,
+   "NEEDS_REVIEW": 5
+  },
+  "fee_unknown|fee=unknown|visa=XW-2|risk=flagged": {
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|fee=unknown|visa=none|risk=clear": {
+   "DENIED": 1
+  },
+  "fee_unknown|risk=clear": {
+   "APPROVED": 16,
+   "DENIED": 5,
+   "NEEDS_REVIEW": 22
+  },
+  "fee_unknown|risk=flagged": {
+   "NEEDS_REVIEW": 4
+  },
+  "fee_unknown|support=1|doubts=3": {
+   "APPROVED": 2,
+   "DENIED": 3,
+   "NEEDS_REVIEW": 2
+  },
+  "fee_unknown|support=2|doubts=2": {
+   "APPROVED": 5,
+   "NEEDS_REVIEW": 10
+  },
+  "fee_unknown|support=2|doubts=3": {
+   "APPROVED": 1,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|support=3|doubts=1": {
+   "APPROVED": 3,
+   "DENIED": 2,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|support=3|doubts=2": {
+   "APPROVED": 2,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|support=3|doubts=3": {
+   "NEEDS_REVIEW": 2
+  },
+  "fee_unknown|support=4|doubts=1": {
+   "APPROVED": 3,
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|visa=DIP-1|risk=clear": {
+   "APPROVED": 6,
+   "NEEDS_REVIEW": 8
+  },
+  "fee_unknown|visa=DIP-1|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "fee_unknown|visa=MED-3|risk=clear": {
+   "APPROVED": 4,
+   "DENIED": 1,
+   "NEEDS_REVIEW": 7
+  },
+  "fee_unknown|visa=XW-1|risk=clear": {
+   "APPROVED": 3,
+   "DENIED": 2,
+   "NEEDS_REVIEW": 2
+  },
+  "fee_unknown|visa=XW-2|risk=clear": {
+   "APPROVED": 3,
+   "DENIED": 1,
+   "NEEDS_REVIEW": 5
+  },
+  "fee_unknown|visa=XW-2|risk=flagged": {
+   "NEEDS_REVIEW": 3
+  },
+  "fee_unknown|visa=none|risk=clear": {
+   "DENIED": 1
+  },
+  "missing": {
+   "APPROVED": 2
+  },
+  "missing_sponsor": {
+   "APPROVED": 4,
+   "DENIED": 2
+  },
+  "missing_sponsor|fee=paid|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "missing_sponsor|fee=paid|support=2|doubts=1": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|fee=paid|support=2|doubts=3": {
+   "APPROVED": 1,
+   "DENIED": 1
+  },
+  "missing_sponsor|fee=paid|support=3|doubts=0": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|fee=paid|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "missing_sponsor|fee=paid|visa=XW-1|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|fee=paid|visa=XW-2|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|fee=paid|visa=none|risk=clear": {
+   "APPROVED": 1,
+   "DENIED": 1
+  },
+  "missing_sponsor|fee=unknown|support=2|doubts=1": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|fee=unknown|visa=MED-3|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|risk=clear": {
+   "APPROVED": 4,
+   "DENIED": 2
+  },
+  "missing_sponsor|support=1|doubts=3": {
+   "DENIED": 1
+  },
+  "missing_sponsor|support=2|doubts=1": {
+   "APPROVED": 2
+  },
+  "missing_sponsor|support=2|doubts=3": {
+   "APPROVED": 1,
+   "DENIED": 1
+  },
+  "missing_sponsor|support=3|doubts=0": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|visa=MED-3|risk=clear": {
+   "APPROVED": 1,
+   "DENIED": 1
+  },
+  "missing_sponsor|visa=XW-1|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|visa=XW-2|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing_sponsor|visa=none|risk=clear": {
+   "APPROVED": 1,
+   "DENIED": 1
+  },
+  "missing|fee=waived|support=4|doubts=1": {
+   "APPROVED": 2
+  },
+  "missing|fee=waived|visa=DIP-1|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing|fee=waived|visa=XW-2|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing|risk=clear": {
+   "APPROVED": 2
+  },
+  "missing|support=4|doubts=1": {
+   "APPROVED": 2
+  },
+  "missing|visa=DIP-1|risk=clear": {
+   "APPROVED": 1
+  },
+  "missing|visa=XW-2|risk=clear": {
+   "APPROVED": 1
+  },
+  "review_flag": {
+   "NEEDS_REVIEW": 3
+  },
+  "review_flag|fee=paid|support=3|doubts=1": {
+   "NEEDS_REVIEW": 3
+  },
+  "review_flag|fee=paid|visa=MED-3|risk=flagged": {
+   "NEEDS_REVIEW": 2
+  },
+  "review_flag|fee=paid|visa=XW-2|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "review_flag|risk=flagged": {
+   "NEEDS_REVIEW": 3
+  },
+  "review_flag|support=3|doubts=1": {
+   "NEEDS_REVIEW": 3
+  },
+  "review_flag|visa=MED-3|risk=flagged": {
+   "NEEDS_REVIEW": 2
+  },
+  "review_flag|visa=XW-2|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "revoked_sponsor": {
+   "APPROVED": 6,
+   "DENIED": 15
+  },
+  "revoked_sponsor|fee=paid|support=2|doubts=1": {
+   "DENIED": 4
+  },
+  "revoked_sponsor|fee=paid|support=3|doubts=0": {
+   "DENIED": 2
+  },
+  "revoked_sponsor|fee=paid|support=3|doubts=1": {
+   "APPROVED": 3
+  },
+  "revoked_sponsor|fee=paid|visa=DIP-1|risk=clear": {
+   "APPROVED": 2
+  },
+  "revoked_sponsor|fee=paid|visa=MED-3|risk=clear": {
+   "DENIED": 4
+  },
+  "revoked_sponsor|fee=paid|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=paid|visa=XW-2|risk=clear": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=paid|visa=none|risk=clear": {
+   "APPROVED": 1
+  },
+  "revoked_sponsor|fee=unknown|support=0|doubts=3": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=unknown|support=1|doubts=2": {
+   "DENIED": 2
+  },
+  "revoked_sponsor|fee=unknown|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=unknown|support=2|doubts=2": {
+   "APPROVED": 1,
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=unknown|visa=DIP-1|risk=clear": {
+   "APPROVED": 1,
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=unknown|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=unknown|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=unknown|visa=XW-2|risk=clear": {
+   "DENIED": 2
+  },
+  "revoked_sponsor|fee=unpaid|support=2|doubts=0": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=unpaid|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=waived|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=waived|support=2|doubts=2": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=waived|support=3|doubts=0": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|fee=waived|support=3|doubts=1": {
+   "APPROVED": 1
+  },
+  "revoked_sponsor|fee=waived|support=3|doubts=2": {
+   "APPROVED": 1
+  },
+  "revoked_sponsor|fee=waived|visa=DIP-1|risk=clear": {
+   "APPROVED": 2
+  },
+  "revoked_sponsor|fee=waived|visa=MED-3|risk=clear": {
+   "DENIED": 2
+  },
+  "revoked_sponsor|fee=waived|visa=XW-2|risk=clear": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|risk=clear": {
+   "APPROVED": 6,
+   "DENIED": 15
+  },
+  "revoked_sponsor|support=0|doubts=3": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|support=1|doubts=2": {
+   "DENIED": 2
+  },
+  "revoked_sponsor|support=2|doubts=0": {
+   "DENIED": 1
+  },
+  "revoked_sponsor|support=2|doubts=1": {
+   "DENIED": 6
+  },
+  "revoked_sponsor|support=2|doubts=2": {
+   "APPROVED": 1,
+   "DENIED": 2
+  },
+  "revoked_sponsor|support=3|doubts=0": {
+   "DENIED": 3
+  },
+  "revoked_sponsor|support=3|doubts=1": {
+   "APPROVED": 4
+  },
+  "revoked_sponsor|support=3|doubts=2": {
+   "APPROVED": 1
+  },
+  "revoked_sponsor|visa=DIP-1|risk=clear": {
+   "APPROVED": 5,
+   "DENIED": 1
+  },
+  "revoked_sponsor|visa=MED-3|risk=clear": {
+   "DENIED": 8
+  },
+  "revoked_sponsor|visa=XW-1|risk=clear": {
+   "DENIED": 2
+  },
+  "revoked_sponsor|visa=XW-2|risk=clear": {
+   "DENIED": 4
+  },
+  "revoked_sponsor|visa=none|risk=clear": {
+   "APPROVED": 1
+  },
+  "risk_unobserved": {
+   "APPROVED": 18,
+   "DENIED": 8,
+   "NEEDS_REVIEW": 18
+  },
+  "risk_unobserved|fee=paid|support=3|doubts=1": {
+   "APPROVED": 10,
+   "DENIED": 4,
+   "NEEDS_REVIEW": 7
+  },
+  "risk_unobserved|fee=paid|support=3|doubts=2": {
+   "APPROVED": 2,
+   "NEEDS_REVIEW": 1
+  },
+  "risk_unobserved|fee=paid|support=4|doubts=1": {
+   "NEEDS_REVIEW": 6
+  },
+  "risk_unobserved|fee=paid|support=4|doubts=2": {
+   "DENIED": 1
+  },
+  "risk_unobserved|fee=paid|visa=DIP-1|risk=clear": {
+   "DENIED": 1,
+   "NEEDS_REVIEW": 6
+  },
+  "risk_unobserved|fee=paid|visa=MED-3|risk=clear": {
+   "APPROVED": 4,
+   "DENIED": 3,
+   "NEEDS_REVIEW": 1
+  },
+  "risk_unobserved|fee=paid|visa=XW-1|risk=clear": {
+   "APPROVED": 4,
+   "DENIED": 1,
+   "NEEDS_REVIEW": 3
+  },
+  "risk_unobserved|fee=paid|visa=XW-2|risk=clear": {
+   "APPROVED": 3,
+   "NEEDS_REVIEW": 4
+  },
+  "risk_unobserved|fee=paid|visa=none|risk=clear": {
+   "APPROVED": 1
+  },
+  "risk_unobserved|fee=waived|support=3|doubts=1": {
+   "APPROVED": 4,
+   "DENIED": 2,
+   "NEEDS_REVIEW": 4
+  },
+  "risk_unobserved|fee=waived|support=4|doubts=1": {
+   "APPROVED": 2,
+   "DENIED": 1
+  },
+  "risk_unobserved|fee=waived|visa=DIP-1|risk=clear": {
+   "APPROVED": 2,
+   "DENIED": 1
+  },
+  "risk_unobserved|fee=waived|visa=MED-3|risk=clear": {
+   "APPROVED": 3,
+   "DENIED": 1,
+   "NEEDS_REVIEW": 1
+  },
+  "risk_unobserved|fee=waived|visa=XW-1|risk=clear": {
+   "DENIED": 1,
+   "NEEDS_REVIEW": 2
+  },
+  "risk_unobserved|fee=waived|visa=XW-2|risk=clear": {
+   "APPROVED": 1,
+   "NEEDS_REVIEW": 1
+  },
+  "risk_unobserved|risk=clear": {
+   "APPROVED": 18,
+   "DENIED": 8,
+   "NEEDS_REVIEW": 18
+  },
+  "risk_unobserved|support=3|doubts=1": {
+   "APPROVED": 14,
+   "DENIED": 6,
+   "NEEDS_REVIEW": 11
+  },
+  "risk_unobserved|support=3|doubts=2": {
+   "APPROVED": 2,
+   "NEEDS_REVIEW": 1
+  },
+  "risk_unobserved|support=4|doubts=1": {
+   "APPROVED": 2,
+   "DENIED": 1,
+   "NEEDS_REVIEW": 6
+  },
+  "risk_unobserved|support=4|doubts=2": {
+   "DENIED": 1
+  },
+  "risk_unobserved|visa=DIP-1|risk=clear": {
+   "APPROVED": 2,
+   "DENIED": 2,
+   "NEEDS_REVIEW": 6
+  },
+  "risk_unobserved|visa=MED-3|risk=clear": {
+   "APPROVED": 7,
+   "DENIED": 4,
+   "NEEDS_REVIEW": 2
+  },
+  "risk_unobserved|visa=XW-1|risk=clear": {
+   "APPROVED": 4,
+   "DENIED": 2,
+   "NEEDS_REVIEW": 5
+  },
+  "risk_unobserved|visa=XW-2|risk=clear": {
+   "APPROVED": 4,
+   "NEEDS_REVIEW": 5
+  },
+  "risk_unobserved|visa=none|risk=clear": {
+   "APPROVED": 1
+  },
+  "stale_application": {
+   "DENIED": 6,
+   "NEEDS_REVIEW": 1
+  },
+  "stale_application|fee=paid|support=2|doubts=1": {
+   "DENIED": 3
+  },
+  "stale_application|fee=paid|support=3|doubts=0": {
+   "DENIED": 1
+  },
+  "stale_application|fee=paid|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "stale_application|fee=paid|visa=XW-1|risk=clear": {
+   "DENIED": 2
+  },
+  "stale_application|fee=paid|visa=XW-2|risk=clear": {
+   "DENIED": 1
+  },
+  "stale_application|fee=unknown|support=1|doubts=3": {
+   "NEEDS_REVIEW": 1
+  },
+  "stale_application|fee=unknown|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "stale_application|fee=unknown|visa=MED-3|risk=clear": {
+   "NEEDS_REVIEW": 1
+  },
+  "stale_application|fee=unknown|visa=XW-2|risk=clear": {
+   "DENIED": 1
+  },
+  "stale_application|fee=waived|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "stale_application|fee=waived|visa=XW-1|risk=clear": {
+   "DENIED": 1
+  },
+  "stale_application|risk=clear": {
+   "DENIED": 6,
+   "NEEDS_REVIEW": 1
+  },
+  "stale_application|support=1|doubts=3": {
+   "NEEDS_REVIEW": 1
+  },
+  "stale_application|support=2|doubts=1": {
+   "DENIED": 5
+  },
+  "stale_application|support=3|doubts=0": {
+   "DENIED": 1
+  },
+  "stale_application|visa=MED-3|risk=clear": {
+   "DENIED": 1,
+   "NEEDS_REVIEW": 1
+  },
+  "stale_application|visa=XW-1|risk=clear": {
+   "DENIED": 3
+  },
+  "stale_application|visa=XW-2|risk=clear": {
+   "DENIED": 2
+  },
+  "transit_visa": {
+   "DENIED": 16,
+   "NEEDS_REVIEW": 1
+  },
+  "transit_visa|fee=paid|support=3|doubts=1": {
+   "DENIED": 4,
+   "NEEDS_REVIEW": 1
+  },
+  "transit_visa|fee=paid|support=3|doubts=2": {
+   "DENIED": 1
+  },
+  "transit_visa|fee=paid|support=4|doubts=0": {
+   "DENIED": 3
+  },
+  "transit_visa|fee=paid|support=4|doubts=1": {
+   "DENIED": 1
+  },
+  "transit_visa|fee=paid|visa=TRANSIT-7|risk=clear": {
+   "DENIED": 9
+  },
+  "transit_visa|fee=paid|visa=TRANSIT-7|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "transit_visa|fee=unknown|support=2|doubts=2": {
+   "DENIED": 1
+  },
+  "transit_visa|fee=unknown|support=3|doubts=1": {
+   "DENIED": 3
+  },
+  "transit_visa|fee=unknown|visa=TRANSIT-7|risk=clear": {
+   "DENIED": 4
+  },
+  "transit_visa|fee=unpaid|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "transit_visa|fee=unpaid|visa=TRANSIT-7|risk=clear": {
+   "DENIED": 1
+  },
+  "transit_visa|fee=waived|support=3|doubts=1": {
+   "DENIED": 2
+  },
+  "transit_visa|fee=waived|visa=TRANSIT-7|risk=clear": {
+   "DENIED": 2
+  },
+  "transit_visa|risk=clear": {
+   "DENIED": 16
+  },
+  "transit_visa|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "transit_visa|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "transit_visa|support=2|doubts=2": {
+   "DENIED": 1
+  },
+  "transit_visa|support=3|doubts=1": {
+   "DENIED": 9,
+   "NEEDS_REVIEW": 1
+  },
+  "transit_visa|support=3|doubts=2": {
+   "DENIED": 1
+  },
+  "transit_visa|support=4|doubts=0": {
+   "DENIED": 3
+  },
+  "transit_visa|support=4|doubts=1": {
+   "DENIED": 1
+  },
+  "transit_visa|visa=TRANSIT-7|risk=clear": {
+   "DENIED": 16
+  },
+  "transit_visa|visa=TRANSIT-7|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "unpaid_fee": {
+   "DENIED": 4
+  },
+  "unpaid_fee|fee=unpaid|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "unpaid_fee|fee=unpaid|support=3|doubts=0": {
+   "DENIED": 2
+  },
+  "unpaid_fee|fee=unpaid|support=4|doubts=0": {
+   "DENIED": 1
+  },
+  "unpaid_fee|fee=unpaid|visa=DIP-1|risk=clear": {
+   "DENIED": 1
+  },
+  "unpaid_fee|fee=unpaid|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "unpaid_fee|fee=unpaid|visa=XW-1|risk=clear": {
+   "DENIED": 2
+  },
+  "unpaid_fee|risk=clear": {
+   "DENIED": 4
+  },
+  "unpaid_fee|support=2|doubts=1": {
+   "DENIED": 1
+  },
+  "unpaid_fee|support=3|doubts=0": {
+   "DENIED": 2
+  },
+  "unpaid_fee|support=4|doubts=0": {
+   "DENIED": 1
+  },
+  "unpaid_fee|visa=DIP-1|risk=clear": {
+   "DENIED": 1
+  },
+  "unpaid_fee|visa=MED-3|risk=clear": {
+   "DENIED": 1
+  },
+  "unpaid_fee|visa=XW-1|risk=clear": {
+   "DENIED": 2
+  }
+ },
+ "min_margin": 0.75,
+ "min_observations": 20,
+ "schema": 1
+}
