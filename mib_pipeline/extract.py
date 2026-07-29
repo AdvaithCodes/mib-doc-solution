@@ -54,6 +54,33 @@ _DATE_RE = re.compile(r"\b(\d{4})[\-/\.](\d{1,2})[\-/\.](\d{1,2})\b")
 _CASE_RE = re.compile(r"\bMIB[\s\-]?(\d{6})\b", re.I)
 
 
+# Identity is the one field where FIELD_MANUAL's document precedence is wrong,
+# and it is wrong badly. On the 66 training packets where documents disagree
+# about who the applicant is, the intake form -- rank 2, and what we would
+# otherwise trust -- names the right person 16% of the time:
+#
+#     intake_form        63 readings   16% correct
+#     biometric_slip     42 readings   67% correct
+#     sponsor_letter     42 readings   52% correct
+#     registry_extract   22 readings   18% correct
+#
+# This is the trap PRD describes: "sponsor letter names one applicant while the
+# form names another", and "a packet can contain pages for more than one
+# applicant". The intake form is the tampered document; a biometric slip is a
+# scan of the person actually present, so it decides identity.
+#
+# The override is deliberately confined to applicant_name. On those same packets
+# the intake form is 100% correct for species_code, home_world, arrival_date and
+# declared_purpose, and 91-94% for visa_class and sponsor_id -- so it is not a
+# foreign document, only one swapped field.
+IDENTITY_AUTHORITY = {
+    "biometric_slip": 1,
+    "sponsor_letter": 2,
+    "intake_form": 3,
+    "registry_extract": 4,
+}
+
+
 @dataclass
 class Candidate:
     value: str
@@ -61,12 +88,18 @@ class Candidate:
     exact: bool
     page: int
     doc_type: str
+    field: str = ""
+
+    def rank(self) -> int:
+        if self.field == "applicant_name" and self.doc_type in IDENTITY_AUTHORITY:
+            return IDENTITY_AUTHORITY[self.doc_type]
+        return self.authority
 
     def better_than(self, other: "Candidate | None") -> bool:
         if other is None:
             return True
-        if self.authority != other.authority:
-            return self.authority < other.authority
+        if self.rank() != other.rank():
+            return self.rank() < other.rank()
         if self.exact != other.exact:
             return self.exact  # exact text beats OCR at equal authority
         return self.page < other.page
@@ -222,7 +255,8 @@ def parse_page(page: Page) -> dict[str, list[Candidate]]:
         if value is None:
             continue
         found.setdefault(fieldname, []).append(
-            Candidate(value, page.authority, page.exact, page.number, page.doc_type)
+            Candidate(value, page.authority, page.exact, page.number,
+                      page.doc_type, fieldname)
         )
     return found
 
@@ -260,7 +294,8 @@ def sweep_page(page: Page, wanted: set[str]) -> dict[str, Candidate]:
     def add(fieldname: str, value: str) -> None:
         # +1 keeps a swept value below a labelled one at the same authority.
         found[fieldname] = Candidate(
-            value, page.authority + 1, page.exact, page.number, page.doc_type)
+            value, page.authority + 1, page.exact, page.number,
+            page.doc_type, fieldname)
 
     for fieldname in wanted & set(_SWEEPABLE):
         if fieldname == "sponsor_id":

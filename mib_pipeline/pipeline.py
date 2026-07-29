@@ -2,7 +2,7 @@
 
 Public training set, 1000 cases:
   challenge baseline   50.77/150   (NEEDS_REVIEW everywhere, no extraction)
-  this pipeline       120.42/150   (118.91 on the 700 cases held out of tuning)
+  this pipeline       120.53/150   (119.00 on the 700 cases held out of tuning)
 
 The fit/holdout gap is real and worth watching: rules tuned against the first
 300 cases score about 6 points higher there than on cases never used for tuning.
