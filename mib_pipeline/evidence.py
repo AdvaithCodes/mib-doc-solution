@@ -30,6 +30,8 @@ import numpy as np
 import pdfplumber
 import pypdfium2 as pdfium
 
+from mib_pipeline import ocr_tesseract
+
 # Rendering resolution.
 #
 # 200 dpi with projection-profile deskew was built and measured against this,
@@ -93,6 +95,12 @@ class Page:
     source: str  # "text" (exact) or "ocr" (lossy)
     hidden_text: str = ""  # retained for diagnostics only; never evidence
     ocr_lines: list[str] = field(default_factory=list)
+    # Second-engine (Tesseract) readings, kept apart from the primary ones.
+    # They fill gaps the primary engine left; they never override a value it
+    # resolved. A wrong second reading that outranks a correct primary one turned
+    # a TRANSIT-7 packet into an approval on the training set -- the exact
+    # -4 case -- which is why these do not compete as equals.
+    second_lines: list[str] = field(default_factory=list)
 
     @property
     def all_lines(self) -> list[str]:
@@ -103,7 +111,10 @@ class Page:
         text can still be hiding a denial stamp. Anything looking for marks
         rather than field values must read this, not `lines`.
         """
-        return self.lines + [l for l in self.ocr_lines if l not in self.lines]
+        merged = list(self.lines)
+        for extra in (self.ocr_lines, self.second_lines):
+            merged.extend(l for l in extra if l not in merged)
+        return merged
 
     @property
     def authority(self) -> int:
@@ -271,9 +282,11 @@ def read_packet(pdf_path: str, case_id: str) -> Packet:
                 # carry digital text, but on the training set the OCR of those
                 # pages returns only a re-segmentation of the same text -- there
                 # are no raster-only marks there to find.
+                second_lines: list[str] = []
                 if n_visible <= BOILERPLATE_CHARS or not lines:
                     ocr_lines = _clean(_ocr_page(doc, idx))
                     lines, source = ocr_lines, "ocr"
+                    second_lines = _second_engine_page(doc, idx)
                 else:
                     ocr_lines, source = [], "text"
 
@@ -285,6 +298,7 @@ def read_packet(pdf_path: str, case_id: str) -> Packet:
                         source=source,
                         hidden_text=hidden,
                         ocr_lines=ocr_lines,
+                        second_lines=second_lines,
                     )
                 )
     finally:
@@ -335,10 +349,25 @@ RETRY_BELOW_CHARS = 40
 
 
 def _ocr_page(doc, index: int, dpi: int = RENDER_DPI) -> list[str]:
-    """Render and OCR one page, retrying at higher resolution if it comes back empty."""
+    """Render and OCR one page with both engines available.
+
+    RapidOCR runs first, retrying at higher resolution if it returns almost
+    nothing. Tesseract then reads the same render as an independent second
+    engine; its lines are appended rather than replacing anything, so a value
+    either engine recovers reaches extraction, and resolution decides between
+    them on the usual authority and exactness rules.
+    """
     lines = _ocr_at(doc, index, dpi)
     if sum(len(l) for l in lines) < RETRY_BELOW_CHARS:
         retry = _ocr_at(doc, index, RETRY_DPI)
         if sum(len(l) for l in retry) > sum(len(l) for l in lines):
-            return retry
+            lines = retry
     return lines
+
+
+def _second_engine_page(doc, index: int, dpi: int = RENDER_DPI) -> list[str]:
+    """Independent Tesseract reading of the same render, or [] if unavailable."""
+    if not ocr_tesseract.available():
+        return []
+    image = np.array(doc[index].render(scale=dpi / 72).to_pil())
+    return _clean(ocr_tesseract.read_page(image))

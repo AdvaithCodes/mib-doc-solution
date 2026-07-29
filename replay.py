@@ -45,6 +45,7 @@ def load(cache_path: str):
                 number=p["number"], doc_type=classify(p["lines"]), lines=p["lines"],
                 source=p["source"], hidden_text=p.get("hidden_text", ""),
                 ocr_lines=p.get("ocr_lines", []),
+                second_lines=p.get("second_lines", []),
             ))
         yield packet
 

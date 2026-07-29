@@ -39,6 +39,7 @@ def extract_one(pdf_path: str) -> dict:
                 "source": p.source,
                 "ocr_lines": p.ocr_lines,
                 "hidden_text": p.hidden_text,
+                "second_lines": p.second_lines,
             }
             for p in packet.pages
         ],

@@ -91,6 +91,8 @@ class Candidate:
     field: str = ""
 
     def rank(self) -> int:
+        if self.doc_type == "manual_correction":
+            return _CORRECTION_RANK
         if self.field == "applicant_name" and self.doc_type in IDENTITY_AUTHORITY:
             return IDENTITY_AUTHORITY[self.doc_type]
         return self.authority
@@ -243,6 +245,37 @@ def split_label_value(line: str) -> tuple[str, str] | None:
     return None
 
 
+# "Manual correction: applicant is Oridane Soltari." A signed correction printed
+# on the packet is the strongest statement available about a field, and it exists
+# precisely because the printed value is wrong. Several intake forms carry a
+# struck-through applicant name beside one of these; only Tesseract reads that
+# region, so before adding the second engine these packets looked like an
+# unresolvable identity conflict.
+_CORRECTION_RE = re.compile(
+    r"manual\s*correct\w*\s*[:\-]?\s*(?:the\s+)?"
+    r"([A-Za-z][A-Za-z ]{2,24}?)\s+(?:is|to|=)\s+([^\.;]{2,60})", re.I)
+
+# Rank 0: above every document type, including the adjudicator note at rank 1.
+_CORRECTION_RANK = 0
+
+
+def parse_corrections(page: Page) -> dict[str, list[Candidate]]:
+    """Field values stated by an explicit manual correction on this page."""
+    found: dict[str, list[Candidate]] = {}
+    for line in page.all_lines:
+        for m in _CORRECTION_RE.finditer(line):
+            fieldname = match_label(m.group(1))
+            if not fieldname:
+                continue
+            value = normalize_field(fieldname, m.group(2))
+            if value is None:
+                continue
+            found.setdefault(fieldname, []).append(
+                Candidate(value, _CORRECTION_RANK, page.exact, page.number,
+                          "manual_correction", fieldname))
+    return found
+
+
 def parse_page(page: Page) -> dict[str, list[Candidate]]:
     """Pull labelled values out of one page's visible lines."""
     found: dict[str, list[Candidate]] = {}
@@ -331,6 +364,8 @@ _SAME_VALUE_RATIO = 0.6
 
 
 def _prefer_clean_reading(chosen: Candidate, all_of_them: list[Candidate]) -> Candidate:
+    if chosen.doc_type == "manual_correction":
+        return chosen
     """Upgrade a damaged reading to an exact one of the same value.
 
     An applicant's name appears on the intake form, the registry extract, the
@@ -359,7 +394,10 @@ def resolve(packet: Packet) -> dict[str, Candidate]:
     best: dict[str, Candidate] = {}
     seen: dict[str, list[Candidate]] = {}
     for page in packet.by_authority():
-        for fieldname, candidates in parse_page(page).items():
+        page_found = parse_page(page)
+        for fieldname, candidates in parse_corrections(page).items():
+            page_found.setdefault(fieldname, []).extend(candidates)
+        for fieldname, candidates in page_found.items():
             for cand in candidates:
                 seen.setdefault(fieldname, []).append(cand)
                 if cand.better_than(best.get(fieldname)):
@@ -372,6 +410,25 @@ def resolve(packet: Packet) -> dict[str, Candidate]:
                    "sponsor_id", "declared_purpose"):
         if _field in best:
             best[_field] = _prefer_clean_reading(best[_field], seen.get(_field, []))
+
+    # Second-engine readings fill gaps only. Parsed with the same rules but
+    # applied strictly after the primary pass, and only for fields the primary
+    # engine failed to resolve.
+    for page in packet.by_authority():
+        if not page.second_lines:
+            continue
+        proxy = Page(number=page.number, doc_type=page.doc_type,
+                     lines=page.second_lines, source="ocr")
+        for fieldname, candidates in parse_page(proxy).items():
+            if fieldname in best:
+                continue
+            for cand in candidates:
+                if cand.better_than(best.get(fieldname)):
+                    best[fieldname] = cand
+        for fieldname, candidates in parse_corrections(proxy).items():
+            for cand in candidates:
+                if cand.better_than(best.get(fieldname)):
+                    best[fieldname] = cand
 
     missing = {f for f in _SWEEPABLE if f not in best}
     if missing:
