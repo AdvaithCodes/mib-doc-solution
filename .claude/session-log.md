@@ -75,7 +75,7 @@ re-run rather than taken on trust.
 
 ## Open issue: where the remaining gap is
 
-An oracle experiment (`scratchpad/oracle.py`) pinned it exactly:
+An oracle experiment (`analysis/oracle.py`) pinned it exactly:
 
 ```
 as shipped          64.18 / 80
