@@ -62,6 +62,17 @@ gh pr create --repo 8090-inc/mib-doc-challenge \
 **The PR alone does not count** — the Google submission form linked in
 `SUBMISSION.md` is also required.
 
+## Findings
+
+`.claude/findings.md` holds everything measured on this project — the data's
+shape, the answer-key trap quantified, the scoring mechanics that drive the
+design, the oracle result below, the full rejected list with numbers, and the
+chronological order the pipeline was built in. Read it before proposing work;
+most obvious ideas are already in the rejected table with a measurement.
+
+`analysis/` holds the scripts that produced those numbers, so any of it can be
+re-run rather than taken on trust.
+
 ## Open issue: where the remaining gap is
 
 An oracle experiment (`scratchpad/oracle.py`) pinned it exactly:
@@ -86,11 +97,12 @@ of them was implemented and cost 0.48 holdout.
 Of 117 missed `illegible_biometrics`, 75 packets contain no biometric slip at
 all, so those are unreachable for anyone.
 
-## Rejected after measurement — do not retry without new evidence
+## The one live vein
 
-200 dpi rendering, projection-profile deskew, image preprocessing (CLAHE,
-thresholding, deblur), multi-DPI consensus, template-aligned cell matching,
-colour/stamp detection, case-ID linkage, MED-3 strictness, expected-value
-decision policies (three variants), approving well-supported ambiguous packets,
-emitting derived risk flags, and the stale-date rule as originally specified.
-Each has its measurement in the git history.
+~158 extraction misses still hold the correct value in text already extracted,
+worth about +0.88. 62 are near-miss spellings appearing once each, where
+consensus voting cannot break the tie and authority decides — often wrongly.
+That needs a tiebreak other than frequency.
+
+Everything else measured is in the rejected table in `findings.md`. Do not retry
+those without new evidence; each cost real time and each has a number.
