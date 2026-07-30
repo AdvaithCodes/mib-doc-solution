@@ -84,8 +84,8 @@ results.
 
 | Split | Total | Extraction | Classification | Calibration |
 | --- | ---: | ---: | ---: | ---: |
-| Public train (n=1000) | 123.61 | 43.45 | 64.18 | 15.98 |
-| Held out (n=700, never tuned on) | 122.41 | 43.39 | 63.04 | 15.98 |
+| Public train (n=1000) | 123.84 | 43.68 | 64.18 | 15.98 |
+| Held out (n=700, never tuned on) | 122.35 | 43.66 | 63.04 | 15.65 |
 
 The held-out row is the honest one: rules and tables were fitted on the first
 300 cases only. The shipped image refits the calibration tables on all 1,000,

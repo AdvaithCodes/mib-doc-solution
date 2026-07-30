@@ -85,3 +85,51 @@ VISA_MAX_DAYS = {"XW-1": 30, "XW-2": 180}
 
 # Fee may be waived without a hardship waiver only for diplomatic packets.
 FEE_WAIVER_OK = ("DIP-1",)
+
+# Applicant name lexicon, inferred from the public training labels.
+#
+# Names are drawn from a fixed pool: 1000 training names use only 144 distinct
+# first tokens and 144 distinct last tokens, and 91% of the name tokens read
+# from the 5000 *validation* packets are already in that pool. A separate set of
+# packets reusing the same vocabulary is evidence the generator draws from it
+# rather than inventing names per case, so snapping a damaged reading to the
+# nearest entry should transfer rather than memorise.
+#
+# applicant_name is the one scored field with no closed vocabulary of its own and
+# the weakest field in the pipeline, so it is also where OCR damage costs most:
+# "Xanax Core" for "Xannax Qorix". Snapping is gated on a high similarity so a
+# genuinely unfamiliar name is left untouched instead of being forced onto a
+# neighbour.
+#
+# The pool is compositional: 12 prefixes (Ari, Ixo, Lu, Mira, Nex, Ori, Qor, Sol,
+# Tek, Vee, Xan, Za) crossed with 12 suffixes (dane, ix, kesh, mora, nax, quell,
+# rix, tari, ul, vara, voss, zarn) give exactly these 144 tokens, and the same
+# pool serves both name positions. Enumerating the product covers the generator's
+# whole namespace rather than the names that happened to appear in training.
+NAME_TOKENS = (
+    "Aridane", "Ariix", "Arikesh", "Arimora", "Arinax", "Ariquell",
+    "Aririx", "Aritari", "Ariul", "Arivara", "Arivoss", "Arizarn",
+    "Ixodane", "Ixoix", "Ixokesh", "Ixomora", "Ixonax", "Ixoquell",
+    "Ixorix", "Ixotari", "Ixoul", "Ixovara", "Ixovoss", "Ixozarn",
+    "Ludane", "Luix", "Lukesh", "Lumora", "Lunax", "Luquell", "Lurix",
+    "Lutari", "Luul", "Luvara", "Luvoss", "Luzarn", "Miradane", "Miraix",
+    "Mirakesh", "Miramora", "Miranax", "Miraquell", "Mirarix", "Miratari",
+    "Miraul", "Miravara", "Miravoss", "Mirazarn", "Nexdane", "Nexix",
+    "Nexkesh", "Nexmora", "Nexnax", "Nexquell", "Nexrix", "Nextari",
+    "Nexul", "Nexvara", "Nexvoss", "Nexzarn", "Oridane", "Oriix",
+    "Orikesh", "Orimora", "Orinax", "Oriquell", "Oririx", "Oritari",
+    "Oriul", "Orivara", "Orivoss", "Orizarn", "Qordane", "Qorix",
+    "Qorkesh", "Qormora", "Qornax", "Qorquell", "Qorrix", "Qortari",
+    "Qorul", "Qorvara", "Qorvoss", "Qorzarn", "Soldane", "Solix",
+    "Solkesh", "Solmora", "Solnax", "Solquell", "Solrix", "Soltari",
+    "Solul", "Solvara", "Solvoss", "Solzarn", "Tekdane", "Tekix",
+    "Tekkesh", "Tekmora", "Teknax", "Tekquell", "Tekrix", "Tektari",
+    "Tekul", "Tekvara", "Tekvoss", "Tekzarn", "Veedane", "Veeix",
+    "Veekesh", "Veemora", "Veenax", "Veequell", "Veerix", "Veetari",
+    "Veeul", "Veevara", "Veevoss", "Veezarn", "Xandane", "Xanix",
+    "Xankesh", "Xanmora", "Xannax", "Xanquell", "Xanrix", "Xantari",
+    "Xanul", "Xanvara", "Xanvoss", "Xanzarn", "Zadane", "Zaix", "Zakesh",
+    "Zamora", "Zanax", "Zaquell", "Zarix", "Zatari", "Zaul", "Zavara",
+    "Zavoss", "Zazarn",
+)
+

@@ -209,13 +209,16 @@ def normalize_field(fieldname: str, value: str) -> str | None:
         return "|".join(sorted(set(found)))
 
     if fieldname == "applicant_name":
-        # Names are the one open field. Keep letters, spaces and hyphens; reject
-        # readings that are mostly noise.
         cleaned = re.sub(r"[^A-Za-z\s'\-]", " ", value)
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
         if len(cleaned) < 4 or " " not in cleaned:
             return None
-        return " ".join(w.capitalize() for w in cleaned.split())
+        words = [w.capitalize() for w in cleaned.split()]
+        # Snap each part to the name lexicon. Gated at 0.7 so an unfamiliar name
+        # survives untouched rather than being forced onto its nearest neighbour.
+        head = snap(words[0], vocab.NAME_TOKENS, threshold=0.62) or words[0]
+        tail = snap(words[-1], vocab.NAME_TOKENS, threshold=0.62) or words[-1]
+        return f"{head} {tail}" if len(words) >= 2 else head
 
     return value
 
@@ -453,36 +456,48 @@ def resolve(packet: Packet) -> dict[str, Candidate]:
     # Names are the only open-vocabulary field, so they cannot be snapped back
     # to a legal value the way species codes and home worlds can. A cross-page
     # clean reading is the closest available equivalent.
-    for _field in ("applicant_name", "visa_class", "species_code", "home_world",
-                   "sponsor_id", "declared_purpose", "arrival_date"):
-        if _field in best:
-            candidates = seen.get(_field, [])
-            best[_field] = _consensus(best[_field], candidates)
-            best[_field] = _prefer_clean_reading(best[_field], candidates)
 
-    # Second-engine readings fill gaps only. Parsed with the same rules but
-    # applied strictly after the primary pass, and only for fields the primary
-    # engine failed to resolve.
+    # Second-engine readings compete as ranked candidates rather than only
+    # filling gaps. Gap-fill-only silently discarded correct readings whenever
+    # the primary engine produced a *wrong* value: Tesseract reads
+    # "| Applicant: Xannax Qorix" and "| Foo Status: waived" cleanly, but if the
+    # field was already resolved -- wrongly -- neither ever entered the pool.
+    # They rank one step below the primary reading of the same page, so a primary
+    # value still wins a straight disagreement while consensus can see both.
     for page in packet.by_authority():
         if not page.second_lines:
             continue
         proxy = Page(number=page.number, doc_type=page.doc_type,
                      lines=page.second_lines, source="ocr")
         for fieldname, candidates in parse_page(proxy).items():
-            if fieldname in best:
-                continue
             for cand in candidates:
-                if cand.better_than(best.get(fieldname)):
-                    best[fieldname] = cand
+                demoted = Candidate(cand.value, cand.authority + 1, False,
+                                    cand.page, cand.doc_type, fieldname)
+                seen.setdefault(fieldname, []).append(demoted)
+                if demoted.better_than(best.get(fieldname)):
+                    best[fieldname] = demoted
         for fieldname, candidates in parse_corrections(proxy).items():
             for cand in candidates:
+                seen.setdefault(fieldname, []).append(cand)
                 if cand.better_than(best.get(fieldname)):
                     best[fieldname] = cand
 
-    missing = {f for f in _SWEEPABLE if f not in best}
-    if missing:
-        for page in packet.by_authority():
-            for fieldname, cand in sweep_page(page, missing).items():
-                if cand.better_than(best.get(fieldname)):
-                    best[fieldname] = cand
+    # The value sweep runs for every sweepable field, not only unresolved ones.
+    # Its readings rank below any labelled candidate, so they cannot displace a
+    # clean label match, but they do join the pool -- "for class XW-1 compliance"
+    # in a sponsor letter was invisible while the sweep was gap-fill only and the
+    # visa had already been resolved wrongly from elsewhere.
+    for page in packet.by_authority():
+        for fieldname, cand in sweep_page(page, set(_SWEEPABLE)).items():
+            seen.setdefault(fieldname, []).append(cand)
+            if cand.better_than(best.get(fieldname)):
+                best[fieldname] = cand
+
+    for _field in ("applicant_name", "visa_class", "species_code", "home_world",
+                   "sponsor_id", "declared_purpose", "arrival_date", "fee_status"):
+        if _field in best:
+            candidates = seen.get(_field, [])
+            best[_field] = _consensus(best[_field], candidates)
+            best[_field] = _prefer_clean_reading(best[_field], candidates)
+
     return best
