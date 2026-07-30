@@ -88,7 +88,13 @@ def extract_case(pdf_path: str):
     return path.stem, packet, resolve(packet)
 
 
-def decide_case(case_id: str, packet, resolved, reference_date=None) -> Prediction | None:
+def rule_state(packet, resolved, reference_date=None):
+    """Record and rule outcome for one packet, before any resolver.
+
+    Shared with replay.py so the measurement harness and the shipped pipeline
+    cannot drift. They previously each held a copy of this logic, and a fix
+    applied to one silently did nothing in the other.
+    """
 
     record = {f: (resolved[f].value if f in resolved else "") for f in SCORED_FIELDS}
 
@@ -113,8 +119,14 @@ def decide_case(case_id: str, packet, resolved, reference_date=None) -> Predicti
     note_decision, note_text = read_adjudicator_note(packet)
     mined = set(flags_from_text(note_text)) if note_text else set()
 
-    # A registry extract reporting an embargo is direct visible evidence of the
-    # planetary_embargo flag, which FIELD_MANUAL lists as disqualifying.
+    # A registry extract reporting an embargo contributes planetary_embargo.
+    #
+    # As a *field* value this is usually wrong: of 12 packets where it fires and
+    # our flags disagree with the labels, only 2 actually carry
+    # planetary_embargo. Removing it was tried and is worse (-0.16 holdout),
+    # because setting risk_known matters more than the flag itself -- it keeps
+    # those packets out of the risk_unobserved review bucket, which runs at 29%.
+    # A locally wrong signal that is globally right, kept deliberately.
     if registry_embargo(packet):
         mined.add("planetary_embargo")
         risk_known = True
@@ -123,14 +135,19 @@ def decide_case(case_id: str, packet, resolved, reference_date=None) -> Predicti
         existing = {f for f in record["risk_flags"].split("|") if f and f != "none"}
         record["risk_flags"] = "|".join(sorted(existing | mined))
 
-    decision, reason, _denials, reviews, approvals = adjudicate_detail(
+    decision, reason, denials, reviews, approvals = adjudicate_detail(
         record, packet, risk_known=risk_known,
         fee_known=fee_known, fee_contested=fee_contested,
         reference_date=reference_date,
     )
 
-    # The resolver supplies per-bucket calibrated confidence; it leaves the
-    # decision alone in practice (see resolver.py).
+    return record, decision, reason, denials, reviews, approvals
+
+
+def decide_case(case_id: str, packet, resolved, reference_date=None) -> Prediction | None:
+    record, decision, reason, _denials, reviews, approvals = rule_state(
+        packet, resolved, reference_date)
+
     confidence = None
     resolver = _resolver()
     if resolver is not None:

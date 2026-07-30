@@ -23,7 +23,8 @@ from mib_pipeline.adjudicate import (adjudicate, adjudicate_detail, flags_from_t
 from mib_pipeline.evidence import Packet, Page, classify
 from mib_pipeline.extract import resolve
 from mib_pipeline.fee import infer_fee_status
-from mib_pipeline.pipeline import SCORED_FIELDS, confidence_for
+from mib_pipeline.pipeline import (SCORED_FIELDS, confidence_for,
+                                   rule_state as pipeline_rule_state)
 from mib_pipeline.schema import FIELD_WEIGHTS, Prediction
 
 CLASSIFICATION_POINTS = {"correct": 8, "to_review": 2, "missed_review": 1,
@@ -51,26 +52,8 @@ def load(cache_path: str):
 
 
 def rule_state(packet: Packet, reference_date=None):
-    """Everything the rules produce for one packet, before any resolver."""
-    resolved = resolve(packet)
-    record = {f: (resolved[f].value if f in resolved else "") for f in SCORED_FIELDS}
-    risk_known = bool(record["risk_flags"])
-    if not record["risk_flags"]:
-        record["risk_flags"] = "none"
-    record["fee_status"], fee_known, fee_contested = infer_fee_status(
-        packet, literal=record["fee_status"])
-    _, note_text = read_adjudicator_note(packet)
-    mined = set(flags_from_text(note_text)) if note_text else set()
-    if registry_embargo(packet):
-        mined.add("planetary_embargo")
-        risk_known = True
-    if mined:
-        have = {f for f in record["risk_flags"].split("|") if f and f != "none"}
-        record["risk_flags"] = "|".join(sorted(have | mined))
-    decision, reason, denials, reviews, approvals = adjudicate_detail(
-        record, packet, risk_known=risk_known, fee_known=fee_known,
-        fee_contested=fee_contested, reference_date=reference_date)
-    return record, decision, reason, denials, reviews, approvals
+    """Delegate to the pipeline so harness and shipped code cannot diverge."""
+    return pipeline_rule_state(packet, resolve(packet), reference_date)
 
 
 _RESOLVER_CACHE: list = []
