@@ -269,6 +269,12 @@ def adjudicate_detail(
     # --- fee ---
     if fee_contested:
         reviews.append("fee_contested")
+    elif not fee_known:
+        # Checked before any value test. fee_status now serialises a modal guess
+        # when nothing was readable, so the value alone no longer proves the fee
+        # was read -- and matching on "paid" first let packets be approved on an
+        # unread fee, which raised catastrophic false approvals from 1 to 3.
+        reviews.append("fee_unknown")
     elif fee == "unpaid":
         if re.search(r"waiver", note_text, re.I):
             reviews.append("unpaid_fee_with_waiver_claim")
@@ -281,7 +287,7 @@ def adjudicate_detail(
             approvals.append("valid_fee_waiver")
         else:
             reviews.append("waiver_unverified")
-    elif fee == "unknown" or not fee or not fee_known:
+    elif fee == "unknown" or not fee:
         reviews.append("fee_unknown")
 
     # --- sponsor requirement ---
