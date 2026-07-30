@@ -469,6 +469,28 @@ def _prefer_clean_reading(chosen: Candidate, all_of_them: list[Candidate]) -> Ca
     return chosen
 
 
+_IDENTITY_DISAGREE_RATIO = 0.75
+
+
+def identity_conflict(packet: Packet) -> bool:
+    """True when documents name two genuinely different applicants.
+
+    Only meaningful now that names snap to the generator's lexicon: before, OCR
+    noise made almost every packet look like a disagreement. A conflict here is
+    two different *lexicon* names, not two spellings of one.
+    """
+    names = []
+    for page in packet.by_authority():
+        for fieldname, candidates in parse_page(page).items():
+            if fieldname != "applicant_name":
+                continue
+            for cand in candidates:
+                if not any(_ratio(_norm(cand.value), _norm(seen)) >= _IDENTITY_DISAGREE_RATIO
+                           for seen in names):
+                    names.append(cand.value)
+    return len(names) > 1
+
+
 def resolve(packet: Packet) -> dict[str, Candidate]:
     """Collapse per-page candidates into one record using source authority."""
     best: dict[str, Candidate] = {}

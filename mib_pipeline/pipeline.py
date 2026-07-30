@@ -18,7 +18,7 @@ from mib_pipeline.adjudicate import (adjudicate_detail, flags_from_text,
                                      _parse_date)
 from mib_pipeline.evidence import read_packet
 from mib_pipeline.fee import infer_fee_status
-from mib_pipeline.extract import resolve
+from mib_pipeline.extract import identity_conflict, resolve
 from mib_pipeline.resolver import Resolver, evidence_keys
 from mib_pipeline.schema import Prediction
 
@@ -130,6 +130,12 @@ def rule_state(packet, resolved, reference_date=None):
     if registry_embargo(packet):
         mined.add("planetary_embargo")
         risk_known = True
+
+    # Emitting identity_conflict when documents name two different applicants
+    # was measured and rejected: 27% of such packets carry the flag against a 4%
+    # base rate, a 6.8x lift that is still 73% false positives, and it cost 0.48
+    # holdout. The detector stays available in extract.identity_conflict but is
+    # not wired to a flag.
 
     if mined:
         existing = {f for f in record["risk_flags"].split("|") if f and f != "none"}
