@@ -1,8 +1,45 @@
 # Session log
 
-## Current status (2026-07-30)
+## NOT YET SUBMITTED — do this first
 
-Submission is complete and validated. Deadline is **2026-08-03**.
+The submission **package** is built and validated. The submission itself has not
+been made. Deadline **2026-08-03**.
+
+1. Fork and open the pull request:
+
+```bash
+cd ~/dev/mib-doc-challenge
+gh repo fork 8090-inc/mib-doc-challenge --remote-name fork --clone=false
+git checkout -b submission/AdvaithCodes
+git add submissions/AdvaithCodes && git commit -m "Submission: AdvaithCodes"
+git push fork submission/AdvaithCodes
+gh pr create --repo 8090-inc/mib-doc-challenge \
+  --head AdvaithCodes:submission/AdvaithCodes \
+  --title "Submission: AdvaithCodes" --body-file submissions/AdvaithCodes/SUBMISSION.md
+```
+
+2. **Fill in the Google form** linked in `submissions/AdvaithCodes/SUBMISSION.md`.
+   The entry does not count without it, and the PR alone is not enough.
+
+Both steps are the user's to run — the repo is public and under their name.
+
+## If there is time after submitting
+
+Ranked by measured value:
+
+1. **~158 extraction misses** still hold the correct value in text already
+   extracted, worth ~+0.88. 62 are near-miss spellings appearing once each, where
+   consensus cannot break the tie. Needs a tiebreak other than frequency.
+2. **Re-run `analysis/oracle.py`** after any change — it locates where score is
+   being lost in one command.
+3. **Do not** start anything in the rejected table in `findings.md` without new
+   evidence. Eighteen attempts are listed there with their numbers.
+
+Regenerating predictions after any change takes ~60s:
+`./replay.py ~/dev/mib-artifacts/val_cache.jsonl <manifest> --predict <out>`
+then re-validate and re-copy into `submissions/AdvaithCodes/predictions.jsonl`.
+
+## Current status (2026-07-30)
 
 | | |
 | --- | --- |
@@ -44,24 +81,6 @@ export MIB_TESSERACT="$HOME/.local/tess/bin/tesseract"
 Rebuild a cache only when `evidence.py` changes (OCR/rendering); everything
 downstream is replayed. `cache_evidence.py` is resumable.
 
-## What remains to submit
-
-The challenge clone is upstream, not a fork. To submit:
-
-```bash
-cd ~/dev/mib-doc-challenge
-gh repo fork 8090-inc/mib-doc-challenge --remote-name fork --clone=false
-git checkout -b submission/AdvaithCodes
-git add submissions/AdvaithCodes && git commit -m "Submission: AdvaithCodes"
-git push fork submission/AdvaithCodes
-gh pr create --repo 8090-inc/mib-doc-challenge \
-  --head AdvaithCodes:submission/AdvaithCodes \
-  --title "Submission: AdvaithCodes" --body-file submissions/AdvaithCodes/SUBMISSION.md
-```
-
-**The PR alone does not count** — the Google submission form linked in
-`SUBMISSION.md` is also required.
-
 ## Findings
 
 `.claude/findings.md` holds everything measured on this project — the data's
@@ -97,12 +116,3 @@ of them was implemented and cost 0.48 holdout.
 Of 117 missed `illegible_biometrics`, 75 packets contain no biometric slip at
 all, so those are unreachable for anyone.
 
-## The one live vein
-
-~158 extraction misses still hold the correct value in text already extracted,
-worth about +0.88. 62 are near-miss spellings appearing once each, where
-consensus voting cannot break the tie and authority decides — often wrongly.
-That needs a tiebreak other than frequency.
-
-Everything else measured is in the rejected table in `findings.md`. Do not retry
-those without new evidence; each cost real time and each has a number.
