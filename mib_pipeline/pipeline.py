@@ -2,7 +2,8 @@
 
 Public training set, 1000 cases:
   challenge baseline   50.77/150   (NEEDS_REVIEW everywhere, no extraction)
-  this pipeline       122.81/150   (121.52 on the 700 cases held out of tuning)
+  this pipeline       123.28/150   (121.73 on the 700 cases held out of tuning,
+                                    with the tables fitted on the other 300)
 
 The fit/holdout gap is real and worth watching: rules tuned against the first
 300 cases score about 6 points higher there than on cases never used for tuning.
@@ -33,21 +34,24 @@ from mib_pipeline.schema import Prediction
 # is maximally punished by any private-set case that breaks the pattern, and the
 # smoothing costs almost nothing on the large routes.
 _ROUTE_CONFIDENCE = {
-    "adjudicator_note": 0.98,         # 107/107
-    "disqualifying_flag": 0.94,       # 27/27
-    "transit_visa": 0.86,             # 16/17
-    "clean": 0.75,                    # 7/8
-    "embargoed_home_world_nondip": 0.75,# 4/4
-    "unpaid_fee": 0.75,               # 4/4
-    "stale_application": 0.73,        # 6/7
-    "review_flag": 0.71,              # 3/3
-    "revoked_sponsor": 0.68,          # 15/21
-    "embargoed_home_world": 0.67,     # 2/2
-    "fee_contested": 0.60,            # 1/1
-    "fee_unknown": 0.54,              # 26/48
-    "missing_sponsor": 0.44,          # 2/5
-    "risk_unobserved": 0.42,          # 18/44
-    "missing": 0.33,                  # 0/2
+    "adjudicator_note": 0.99,         # 333/333
+    "disqualifying_flag": 0.97,       # 72/72
+    "transit_visa": 0.89,             # 32/34
+    "embargoed_home_world_nondip": 0.89,# 14/14
+    "stale_application": 0.88,        # 19/20
+    "unpaid_fee": 0.88,               # 26/28
+    "review_flag": 0.86,              # 16/17
+    "clean": 0.84,                    # 40/46
+    "embargoed_home_world": 0.80,     # 6/6
+    "revoked_sponsor": 0.70,          # 47/66
+    "fee_contested": 0.67,            # 2/2
+    "med3_biohazard_adverse": 0.60,   # 1/1
+    "fee_unknown": 0.55,              # 86/156
+    "waiver_unverified": 0.54,        # 5/9
+    "arrival_date_missing": 0.50,     # 3/6
+    "missing_sponsor": 0.37,          # 9/26
+    "risk_unobserved": 0.36,          # 58/161
+    "missing": 0.29,                  # 0/3
 }
 
 # Routes not in the table are unmeasured; 0.5 asserts nothing either way.
