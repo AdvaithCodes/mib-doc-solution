@@ -188,7 +188,7 @@
   "disqualifying_flag|fee=unknown|visa=DIP-1|risk=flagged": {
    "DENIED": 1
   },
-  "disqualifying_flag|fee=unpaid|support=2|doubts=1": {
+  "disqualifying_flag|fee=unpaid|support=2|doubts=0": {
    "DENIED": 1
   },
   "disqualifying_flag|fee=unpaid|visa=MED-3|risk=flagged": {
@@ -227,8 +227,11 @@
   "disqualifying_flag|support=1|doubts=3": {
    "DENIED": 2
   },
+  "disqualifying_flag|support=2|doubts=0": {
+   "DENIED": 1
+  },
   "disqualifying_flag|support=2|doubts=1": {
-   "DENIED": 21
+   "DENIED": 20
   },
   "disqualifying_flag|support=2|doubts=2": {
    "DENIED": 4
@@ -1109,12 +1112,9 @@
    "APPROVED": 1
   },
   "risk_unobserved|fee=waived|support=3|doubts=1": {
-   "APPROVED": 12,
+   "APPROVED": 13,
    "DENIED": 6,
    "NEEDS_REVIEW": 10
-  },
-  "risk_unobserved|fee=waived|support=3|doubts=2": {
-   "APPROVED": 1
   },
   "risk_unobserved|fee=waived|support=3|doubts=3": {
    "APPROVED": 1
@@ -1149,12 +1149,12 @@
    "NEEDS_REVIEW": 46
   },
   "risk_unobserved|support=3|doubts=1": {
-   "APPROVED": 60,
+   "APPROVED": 61,
    "DENIED": 23,
    "NEEDS_REVIEW": 28
   },
   "risk_unobserved|support=3|doubts=2": {
-   "APPROVED": 3,
+   "APPROVED": 2,
    "NEEDS_REVIEW": 1
   },
   "risk_unobserved|support=3|doubts=3": {
@@ -1287,10 +1287,7 @@
    "DENIED": 1
   },
   "transit_visa|fee=paid|support=4|doubts=0": {
-   "DENIED": 6
-  },
-  "transit_visa|fee=paid|support=4|doubts=1": {
-   "DENIED": 1
+   "DENIED": 7
   },
   "transit_visa|fee=paid|visa=TRANSIT-7|risk=clear": {
    "DENIED": 24,
@@ -1347,10 +1344,7 @@
    "DENIED": 1
   },
   "transit_visa|support=4|doubts=0": {
-   "DENIED": 6
-  },
-  "transit_visa|support=4|doubts=1": {
-   "DENIED": 1
+   "DENIED": 7
   },
   "transit_visa|visa=TRANSIT-7|risk=clear": {
    "DENIED": 31,

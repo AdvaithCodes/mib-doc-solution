@@ -28,7 +28,10 @@ from mib_pipeline.evidence import Packet, Page
 # these are anchors rather than an exhaustive list of OCR corruptions.
 LABEL_ALIASES: dict[str, tuple[str, ...]] = {
     "case_id": ("case id", "caseid", "case"),
-    "applicant_name": ("applicant", "applicant name", "name"),
+    # "Registry Name" appears on registry extracts, present in 440 of 1000
+    # packets, and scored 0.50 against "name" -- below the 0.82 threshold, so
+    # every one of those readings was being discarded.
+    "applicant_name": ("applicant", "applicant name", "name", "registry name"),
     "species_code": ("species code", "speciescode", "species"),
     "home_world": ("home world", "homeworld", "world", "origin"),
     "visa_class": ("visa class", "visaclass", "visa"),
@@ -279,6 +282,20 @@ def parse_corrections(page: Page) -> dict[str, list[Candidate]]:
 def parse_page(page: Page) -> dict[str, list[Candidate]]:
     """Pull labelled values out of one page's visible lines."""
     found: dict[str, list[Candidate]] = {}
+
+    # Sponsor letters name the applicant in prose rather than as a labelled
+    # field. This used to be collected only when the field was otherwise
+    # unresolved, which meant a wrong reading from elsewhere kept the prose name
+    # out of the candidate pool entirely and consensus never got to vote on it.
+    if page.doc_type == "sponsor_letter":
+        m = _PROSE_NAME_RE.search(" ".join(page.lines))
+        if m:
+            value = normalize_field("applicant_name", m.group(1))
+            if value:
+                found.setdefault("applicant_name", []).append(
+                    Candidate(value, page.authority, page.exact, page.number,
+                              page.doc_type, "applicant_name"))
+
     for line in page.lines:
         pair = split_label_value(line)
         if not pair:
@@ -363,6 +380,36 @@ def sweep_page(page: Page, wanted: set[str]) -> dict[str, Candidate]:
 _SAME_VALUE_RATIO = 0.6
 
 
+def _consensus(chosen: Candidate, all_of_them: list[Candidate]) -> Candidate:
+    """Pick the reading the sources agree on, among candidates for one value.
+
+    Authority answers "which document wins a conflict". It does not answer "which
+    of four OCR readings of the same name is the accurate one", and using it for
+    that selects a damaged reading whenever the damaged page happens to outrank
+    the clean ones -- 'Qorvoss Qomora' over 'Qorvoss Qormora'.
+
+    So among candidates that agree on *what* they are naming, the most frequently
+    read spelling wins, with exactness and then authority breaking ties. A
+    genuinely different value is not similar enough to join the vote and still
+    loses to authority in the normal way.
+    """
+    if chosen.doc_type == "manual_correction":
+        return chosen
+    similar = [c for c in all_of_them
+               if _ratio(_norm(c.value), _norm(chosen.value)) >= _SAME_VALUE_RATIO]
+    if len(similar) < 2:
+        return chosen
+    tally: dict[str, list[Candidate]] = {}
+    for cand in similar:
+        tally.setdefault(cand.value, []).append(cand)
+    def rank(item):
+        value, group = item
+        exact = any(c.exact for c in group)
+        best_authority = min(c.rank() for c in group)
+        return (-len(group), not exact, best_authority)
+    return min(tally.items(), key=rank)[1][0]
+
+
 def _prefer_clean_reading(chosen: Candidate, all_of_them: list[Candidate]) -> Candidate:
     if chosen.doc_type == "manual_correction":
         return chosen
@@ -407,9 +454,11 @@ def resolve(packet: Packet) -> dict[str, Candidate]:
     # to a legal value the way species codes and home worlds can. A cross-page
     # clean reading is the closest available equivalent.
     for _field in ("applicant_name", "visa_class", "species_code", "home_world",
-                   "sponsor_id", "declared_purpose"):
+                   "sponsor_id", "declared_purpose", "arrival_date"):
         if _field in best:
-            best[_field] = _prefer_clean_reading(best[_field], seen.get(_field, []))
+            candidates = seen.get(_field, [])
+            best[_field] = _consensus(best[_field], candidates)
+            best[_field] = _prefer_clean_reading(best[_field], candidates)
 
     # Second-engine readings fill gaps only. Parsed with the same rules but
     # applied strictly after the primary pass, and only for fields the primary

@@ -2,7 +2,7 @@
 
 Public training set, 1000 cases:
   challenge baseline   50.77/150   (NEEDS_REVIEW everywhere, no extraction)
-  this pipeline       123.28/150   (121.73 on the 700 cases held out of tuning,
+  this pipeline       123.61/150   (122.41 on the 700 cases held out of tuning,
                                     with the tables fitted on the other 300)
 
 The fit/holdout gap is real and worth watching: rules tuned against the first
@@ -46,11 +46,11 @@ _ROUTE_CONFIDENCE = {
     "revoked_sponsor": 0.70,          # 47/66
     "fee_contested": 0.67,            # 2/2
     "med3_biohazard_adverse": 0.60,   # 1/1
-    "fee_unknown": 0.55,              # 86/156
     "waiver_unverified": 0.54,        # 5/9
+    "fee_unknown": 0.51,              # 79/156
     "arrival_date_missing": 0.50,     # 3/6
     "missing_sponsor": 0.37,          # 9/26
-    "risk_unobserved": 0.36,          # 58/161
+    "risk_unobserved": 0.29,          # 46/161
     "missing": 0.29,                  # 0/3
 }
 
