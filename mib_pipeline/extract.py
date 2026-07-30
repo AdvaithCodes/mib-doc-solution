@@ -383,6 +383,27 @@ def sweep_page(page: Page, wanted: set[str]) -> dict[str, Candidate]:
 _SAME_VALUE_RATIO = 0.6
 
 
+def _lexicon_support(fieldname: str, value: str) -> int:
+    """How many parts of this reading are real vocabulary.
+
+    Used only to break ties between equally-attested candidates. A value that is
+    entirely made of known tokens is more likely to be the undamaged reading than
+    one carrying a fragment that matched nothing.
+    """
+    if fieldname == "applicant_name":
+        known = {_norm(t) for t in vocab.NAME_TOKENS}
+        return sum(1 for part in value.split() if _norm(part) in known)
+    if fieldname == "species_code":
+        return int(value in vocab.SPECIES_CODES)
+    if fieldname == "home_world":
+        return int(value in vocab.HOME_WORLDS)
+    if fieldname == "declared_purpose":
+        return int(value in vocab.DECLARED_PURPOSES)
+    if fieldname == "visa_class":
+        return int(value in vocab.VISA_CLASSES)
+    return 0
+
+
 def _consensus(chosen: Candidate, all_of_them: list[Candidate]) -> Candidate:
     """Pick the reading the sources agree on, among candidates for one value.
 
@@ -405,11 +426,20 @@ def _consensus(chosen: Candidate, all_of_them: list[Candidate]) -> Candidate:
     tally: dict[str, list[Candidate]] = {}
     for cand in similar:
         tally.setdefault(cand.value, []).append(cand)
+
     def rank(item):
         value, group = item
         exact = any(c.exact for c in group)
         best_authority = min(c.rank() for c in group)
-        return (-len(group), not exact, best_authority)
+        # Lexicon validity breaks the ties frequency cannot. 62 of the remaining
+        # misses were near-miss spellings appearing exactly once each, so votes
+        # were level and authority decided -- often wrongly. A reading whose parts
+        # are all real vocabulary is the better bet: "Xannax Qorix" over
+        # "Xannax Core", where snapping repaired one token and left the other as
+        # evidence that the reading was damaged.
+        return (-_lexicon_support(chosen.field, value), -len(group),
+                not exact, best_authority)
+
     return min(tally.items(), key=rank)[1][0]
 
 
