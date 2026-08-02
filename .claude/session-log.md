@@ -1,27 +1,82 @@
 # Session log
 
-## NOT YET SUBMITTED — do this first
+## Submission status
 
-The submission **package** is built and validated. The submission itself has not
-been made. Deadline **2026-08-03**.
+**PR is open: https://github.com/8090-inc/mib-doc-challenge/pull/65** (filed
+2026-08-02, commit `06c8024` on `AdvaithCodes:submission/AdvaithCodes`). It
+carries exactly the three required files and the *pre-2026-08-02* artefact:
+holdout 122.38, validator exit 0, 5,000 records.
 
-1. Fork and open the pull request:
+**Still outstanding — the Google form.** The entry does not count without it and
+the PR alone is not enough:
+https://docs.google.com/forms/d/1ZLkHmTsYd9I87JL1sUyps2rPTe6ohEI_lTZ8Jjts6bw/viewform
+
+The filed package is deliberately the older one, because it is internally
+coherent: `mib-doc-solution` at `3c3646d` is the code that produced those
+predictions, and the memo states those numbers. Deadline **2026-08-03**.
+
+## Pending upgrade to the filed PR
+
+The 2026-08-02 work (holdout 122.38 -> 123.07) is **committed nowhere yet** and
+is not in the PR. To land it, all three must move together or the package stops
+being coherent:
+
+1. `~/dev/mib-artifacts/val_cache_panel.jsonl` finishes rebuilding (~20:30
+   2026-08-02), then regenerate predictions — see the block below.
+2. Restore the updated memo, saved at
+   `<scratchpad>/MEMO_new_2026-08-02.md`, over
+   `submissions/AdvaithCodes/MEMO.md`. It already carries the new numbers and
+   the write-ups for the flag panel, the raster leak and the 403 correction.
+3. Commit and push `mib-doc-solution` (7 modified files + 7 new
+   `analysis/` scripts), because `SUBMISSION.md` points the judges at that repo
+   and it must contain the code that produced the predictions.
+
+Then `git commit && git push fork submission/AdvaithCodes` — the PR updates in
+place, no new PR needed.
+
+## In flight right now (2026-08-02)
+
+**The validation cache is being rebuilt** at
+`~/dev/mib-artifacts/val_cache_panel.jsonl` (5,000 packets, several hours on
+this 10-core machine). It is needed only because the risk-flag panel changes
+what OCR produces; every other change this session is replayed from a cache and
+needed no rebuild.
+
+The currently shipped `submissions/AdvaithCodes/predictions.jsonl` is still the
+older, fully validated artefact — **it is submittable as-is at any moment**
+(re-checked 2026-08-02, exit code 0, 5,000 records, 0 missing). Do not replace
+it until the new cache finishes *and* the validator passes on the new file.
+
+When the rebuild completes:
 
 ```bash
+./replay.py ~/dev/mib-artifacts/val_cache_panel.jsonl \
+    ~/dev/mib-doc-challenge/data/validation_manifest.csv \
+    --predict ~/dev/mib-artifacts/val_predictions.jsonl
+cp ~/dev/mib-artifacts/val_predictions.jsonl \
+    ~/dev/mib-doc-challenge/submissions/AdvaithCodes/predictions.jsonl
 cd ~/dev/mib-doc-challenge
-gh repo fork 8090-inc/mib-doc-challenge --remote-name fork --clone=false
-git checkout -b submission/AdvaithCodes
-git add submissions/AdvaithCodes && git commit -m "Submission: AdvaithCodes"
-git push fork submission/AdvaithCodes
-gh pr create --repo 8090-inc/mib-doc-challenge \
-  --head AdvaithCodes:submission/AdvaithCodes \
-  --title "Submission: AdvaithCodes" --body-file submissions/AdvaithCodes/SUBMISSION.md
+python3 scripts/validate_submission.py \
+    --submission submissions/AdvaithCodes/predictions.jsonl \
+    --manifest data/validation_manifest.csv
+echo "exit: $?"      # check directly, never through a pipe
 ```
 
-2. **Fill in the Google form** linked in `submissions/AdvaithCodes/SUBMISSION.md`.
-   The entry does not count without it, and the PR alone is not enough.
+## What changed on 2026-08-02
 
-Both steps are the user's to run — the repo is public and under their name.
+Honest holdout **122.38 -> 123.07**, catastrophic false approvals unchanged at 1.
+
+| change | holdout | needs cache rebuild |
+| --- | --- | --- |
+| Page typing: strip watermark lines, use both engines, form-anchor vote | +0.20 | no |
+| Injected answer key filtered out of OCR output | 0.00 | no |
+| `Manual correction:` excluded from page typing | 0.00 public | no |
+| Risk-flag panel: 400-dpi re-read of the slip header | +0.53 | **yes** |
+
+The two zero-scoring changes are correctness, not score: the answer key was
+reaching evidence through the raster on 3 packets, and a damaged intake form
+carrying a correction was being typed `adjudicator_note` — rank 2 promoted to
+rank 1. Blind page-typing precision went 93.8% -> 100%.
 
 ## If there is time after submitting
 
@@ -30,27 +85,30 @@ Ranked by measured value:
 1. **~158 extraction misses** still hold the correct value in text already
    extracted, worth ~+0.88. 62 are near-miss spellings appearing once each, where
    consensus cannot break the tie. Needs a tiebreak other than frequency.
-2. **Re-run `analysis/oracle.py`** after any change — it locates where score is
+2. **The header re-read on intake forms** is measured at about +0.33 upper bound
+   (`analysis/header_roi_probe.py`) and was declined only because one cache
+   rebuild fitted in the time and the flag panel was the larger, measured win.
+   Its downside was never measured — do that before shipping it.
+3. **Re-run `analysis/oracle.py`** after any change — it locates where score is
    being lost in one command.
-3. **Do not** start anything in the rejected table in `findings.md` without new
-   evidence. Eighteen attempts are listed there with their numbers.
+4. **Do not** start anything in the rejected table in `findings.md` without new
+   evidence. Twenty-two attempts are listed there with their numbers.
 
-Regenerating predictions after any change takes ~60s:
-`./replay.py ~/dev/mib-artifacts/val_cache.jsonl <manifest> --predict <out>`
-then re-validate and re-copy into `submissions/AdvaithCodes/predictions.jsonl`.
-
-## Current status (2026-07-30)
+## Current status (2026-08-02)
 
 | | |
 | --- | --- |
-| Held out (700 cases, tables fitted on the other 300) | **122.38** |
-| Shipped image (tables refit on all 1000) | 123.87 |
+| Held out (700 cases, tables fitted on the other 300) | **123.07** |
+| Shipped image (tables refit on all 1000) | see `findings.md` §6 |
 | Catastrophic false approvals | 1 |
-| Runtime | ~1.3-3.6 s/PDF against a 6 s budget |
+| Runtime | 2.55 s/PDF single-process against a 6 s budget (was 2.33 before the panel) |
 | CI | green — builds `linux/amd64`, runs under scoring flags |
-| Validation predictions | 5000 records, `validate_submission.py` exit 0 |
+| Validation predictions | **regenerating** — old artefact still valid |
 
 Holdout is the honest number. Interview bar is 105 total / 55 classification.
+
+`replay.py` over the 1,000 training cases takes **~41 s**, not the ~17 s this
+file and `CLAUDE.md` used to claim; the baseline was re-timed and was always 41 s.
 
 ## Where things live
 

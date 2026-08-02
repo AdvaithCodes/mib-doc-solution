@@ -20,7 +20,7 @@ import sys
 from mib_pipeline.adjudicate import (adjudicate, adjudicate_detail, flags_from_text,
                                      read_adjudicator_note, reference_receipt_date,
                                      registry_embargo, _parse_date)
-from mib_pipeline.evidence import Packet, Page, classify
+from mib_pipeline.evidence import Packet, Page, classify, strip_injected
 from mib_pipeline.extract import resolve
 from mib_pipeline.fee import infer_fee_status
 from mib_pipeline.pipeline import (SCORED_FIELDS, confidence_for,
@@ -39,11 +39,21 @@ def load(cache_path: str):
         rec = json.loads(line)
         packet = Packet(case_id=rec["case_id"])
         for p in rec["pages"]:
+            # Injected answer-key text read out of the raster is stripped here as
+            # well as at cache time, so a cache built before that filter existed
+            # still measures the shipped behaviour. The filter is idempotent.
+            hidden = p.get("hidden_text", "")
+            p = dict(p)
+            for key in ("lines", "ocr_lines", "second_lines"):
+                if p.get(key) and p.get("source") == "ocr":
+                    p[key] = strip_injected(p[key], hidden)
             # Recompute the document type rather than trusting the cached value:
             # classification is part of what gets tuned, and a stale doc_type
             # would silently hide its effect. Only the expensive OCR is reused.
             packet.pages.append(Page(
-                number=p["number"], doc_type=classify(p["lines"]), lines=p["lines"],
+                number=p["number"],
+                doc_type=classify(p["lines"], p.get("second_lines", [])),
+                lines=p["lines"],
                 source=p["source"], hidden_text=p.get("hidden_text", ""),
                 ocr_lines=p.get("ocr_lines", []),
                 second_lines=p.get("second_lines", []),

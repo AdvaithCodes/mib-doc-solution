@@ -88,6 +88,46 @@ for an unreadable field while telling the adjudicator it was never read is not
 inconsistent — it is two correct answers to two different questions. Refusing
 that for tidiness cost about a point.
 
+## A diagnostic that shares a bug with the pipeline confirms itself
+
+`audit_misses.py:72` decided a document was "not in the packet" by testing
+`p.doc_type == doc_type`. Any page too damaged to *classify* therefore counted
+as a document that was not there, and the resulting "403 source document is not
+in the packet at all" became a settled fact in findings.md. It was wrong: 410
+pages typed `unknown`, and rendering six of them showed three fully legible
+intake forms. The diagnostic inherited the classifier's blind spot and then
+reported it as a property of the data.
+
+**Rule:** when a diagnostic attributes a failure to the *input*, check whether
+it reached that conclusion through the same code that failed.
+
+## Enforcing a rule on one representation does not enforce it
+
+The visible-evidence rule was enforced on the text layer. pdfium also renders
+hidden characters into the raster, so the injected answer key reached OCR on 3
+packets anyway — the one thing this design exists to prevent, live for months
+under a rule everyone believed was total.
+
+The first fix made it worse: painting the hidden characters' boxes white before
+OCR erased 15,224 characters of real evidence from 299 pages, because the key is
+positioned across the whole page and its boxes cover the form. Filtering the OCR
+output on the injection's *framing* — never its values, which the form legitimately
+prints too — cost nothing.
+
+**Rule:** a rule about content has to be enforced on every representation of
+that content, and the cheapest place to enforce it is rarely the raw pixels.
+
+## Match the tolerance of the test to the damage you are testing for
+
+The flag panel first read `Observed flags` with an exact substring test and
+recovered 7 flags. The values arrive as `bichozord_red` and `egible_biometics`,
+and the *label* arrives as `Observed floga` — so the test rejected precisely the
+damaged cases it was built to catch. Snapping to the closed nine-flag set and
+locating the label fuzzily took it to 24 at the same 100% precision.
+
+**Rule:** an exact test on OCR output silently defines the population it can
+help as the population that did not need help.
+
 ## Fitting on a subset then reading on the same subset is not a measurement
 
 Rules and tables were fitted on the first 300 cases; the honest number is the

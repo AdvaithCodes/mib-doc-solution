@@ -29,15 +29,18 @@ evidence caches in `~/dev/mib-artifacts/` hold the OCR output, and everything
 downstream is replayed from them:
 
 ```bash
-# all 1000 training cases, ~17 seconds
-./replay.py ~/dev/mib-artifacts/train_cache_2engine.jsonl \
+# all 1000 training cases, ~41 seconds on an idle machine
+./replay.py ~/dev/mib-artifacts/train_cache_panel.jsonl \
     ~/dev/mib-doc-challenge/data/train_labels.csv --split 300
 
-# 5000 validation predictions, ~60 seconds
-./replay.py ~/dev/mib-artifacts/val_cache.jsonl \
+# 5000 validation predictions, a few minutes
+./replay.py ~/dev/mib-artifacts/val_cache_panel.jsonl \
     ~/dev/mib-doc-challenge/data/validation_manifest.csv \
     --predict ~/dev/mib-artifacts/val_predictions.jsonl
 ```
+
+`train_cache_2engine.jsonl` and `val_cache.jsonl` are the pre-2026-08-02 caches,
+kept as the A/B baseline. The `_panel` caches are the current ones.
 
 Rebuild a cache only when `evidence.py` changes — rendering or OCR. Everything
 else replays. `cache_evidence.py` is resumable.
@@ -54,7 +57,11 @@ else replays. `cache_evidence.py` is resumable.
   outputs, not the score.
 - **Never read hidden text as evidence.** 21.6% of packets carry an injected
   answer key whose adjudication is wrong in 216 of 216 cases. It is quantified in
-  `findings.md`, and reading it is penalised on the private set.
+  `findings.md`, and reading it is penalised on the private set. Enforce this on
+  the *raster* as well as the text layer: pdfium renders hidden characters into
+  the page image, and 3 packets leaked the key into OCR before
+  `evidence.strip_injected` existed. Any rise in render resolution makes this
+  worse — re-check it when touching OCR.
 - **Catastrophic false approvals are a tiebreaker.** The rate is 1 per 1000. A
   change that raises it needs to buy a lot.
 - **The harness imports from the shipped module.** `replay.py` once held its own

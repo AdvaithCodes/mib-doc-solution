@@ -1,19 +1,13 @@
 {
  "buckets": {
   "arrival_date_missing": {
-   "APPROVED": 2,
+   "APPROVED": 1,
    "DENIED": 1,
    "NEEDS_REVIEW": 3
   },
   "arrival_date_missing|fee=paid|support=2|doubts=3": {
    "DENIED": 1,
    "NEEDS_REVIEW": 2
-  },
-  "arrival_date_missing|fee=paid|support=3|doubts=3": {
-   "APPROVED": 1
-  },
-  "arrival_date_missing|fee=paid|visa=DIP-1|risk=clear": {
-   "APPROVED": 1
   },
   "arrival_date_missing|fee=paid|visa=MED-3|risk=clear": {
    "DENIED": 1
@@ -37,7 +31,7 @@
    "APPROVED": 1
   },
   "arrival_date_missing|risk=clear": {
-   "APPROVED": 2,
+   "APPROVED": 1,
    "DENIED": 1,
    "NEEDS_REVIEW": 2
   },
@@ -52,11 +46,7 @@
   "arrival_date_missing|support=3|doubts=2": {
    "NEEDS_REVIEW": 1
   },
-  "arrival_date_missing|support=3|doubts=3": {
-   "APPROVED": 1
-  },
   "arrival_date_missing|visa=DIP-1|risk=clear": {
-   "APPROVED": 1,
    "NEEDS_REVIEW": 1
   },
   "arrival_date_missing|visa=MED-3|risk=clear": {
@@ -141,7 +131,7 @@
    "NEEDS_REVIEW": 2
   },
   "disqualifying_flag": {
-   "DENIED": 72
+   "DENIED": 76
   },
   "disqualifying_flag|fee=paid|support=1|doubts=2": {
    "DENIED": 1
@@ -150,13 +140,13 @@
    "DENIED": 2
   },
   "disqualifying_flag|fee=paid|support=2|doubts=1": {
-   "DENIED": 17
+   "DENIED": 18
   },
   "disqualifying_flag|fee=paid|support=2|doubts=2": {
    "DENIED": 4
   },
   "disqualifying_flag|fee=paid|support=3|doubts=0": {
-   "DENIED": 22
+   "DENIED": 24
   },
   "disqualifying_flag|fee=paid|support=3|doubts=1": {
    "DENIED": 9
@@ -168,27 +158,27 @@
    "DENIED": 11
   },
   "disqualifying_flag|fee=paid|visa=MED-3|risk=flagged": {
-   "DENIED": 26
+   "DENIED": 27
   },
   "disqualifying_flag|fee=paid|visa=TRANSIT-7|risk=flagged": {
    "DENIED": 1
   },
   "disqualifying_flag|fee=paid|visa=XW-1|risk=flagged": {
-   "DENIED": 14
+   "DENIED": 15
   },
   "disqualifying_flag|fee=paid|visa=XW-2|risk=flagged": {
-   "DENIED": 6
+   "DENIED": 7
   },
   "disqualifying_flag|fee=paid|visa=none|risk=flagged": {
    "DENIED": 2
   },
-  "disqualifying_flag|fee=unknown|support=3|doubts=1": {
-   "DENIED": 1
-  },
-  "disqualifying_flag|fee=unknown|visa=DIP-1|risk=flagged": {
-   "DENIED": 1
-  },
   "disqualifying_flag|fee=unpaid|support=2|doubts=0": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=unpaid|support=3|doubts=1": {
+   "DENIED": 1
+  },
+  "disqualifying_flag|fee=unpaid|visa=DIP-1|risk=flagged": {
    "DENIED": 1
   },
   "disqualifying_flag|fee=unpaid|visa=MED-3|risk=flagged": {
@@ -198,7 +188,7 @@
    "DENIED": 3
   },
   "disqualifying_flag|fee=waived|support=3|doubts=0": {
-   "DENIED": 5
+   "DENIED": 6
   },
   "disqualifying_flag|fee=waived|support=4|doubts=0": {
    "DENIED": 1
@@ -210,7 +200,7 @@
    "DENIED": 2
   },
   "disqualifying_flag|fee=waived|visa=MED-3|risk=flagged": {
-   "DENIED": 5
+   "DENIED": 6
   },
   "disqualifying_flag|fee=waived|visa=XW-1|risk=flagged": {
    "DENIED": 1
@@ -219,7 +209,7 @@
    "DENIED": 2
   },
   "disqualifying_flag|risk=flagged": {
-   "DENIED": 72
+   "DENIED": 76
   },
   "disqualifying_flag|support=1|doubts=2": {
    "DENIED": 1
@@ -231,13 +221,13 @@
    "DENIED": 1
   },
   "disqualifying_flag|support=2|doubts=1": {
-   "DENIED": 20
+   "DENIED": 21
   },
   "disqualifying_flag|support=2|doubts=2": {
    "DENIED": 4
   },
   "disqualifying_flag|support=3|doubts=0": {
-   "DENIED": 27
+   "DENIED": 30
   },
   "disqualifying_flag|support=3|doubts=1": {
    "DENIED": 10
@@ -252,16 +242,16 @@
    "DENIED": 14
   },
   "disqualifying_flag|visa=MED-3|risk=flagged": {
-   "DENIED": 32
+   "DENIED": 34
   },
   "disqualifying_flag|visa=TRANSIT-7|risk=flagged": {
    "DENIED": 1
   },
   "disqualifying_flag|visa=XW-1|risk=flagged": {
-   "DENIED": 15
+   "DENIED": 16
   },
   "disqualifying_flag|visa=XW-2|risk=flagged": {
-   "DENIED": 8
+   "DENIED": 9
   },
   "disqualifying_flag|visa=none|risk=flagged": {
    "DENIED": 2
@@ -278,6 +268,9 @@
   "embargoed_home_world_nondip|fee=paid|support=0|doubts=3": {
    "DENIED": 1
   },
+  "embargoed_home_world_nondip|fee=paid|support=1|doubts=2": {
+   "DENIED": 1
+  },
   "embargoed_home_world_nondip|fee=paid|support=1|doubts=3": {
    "DENIED": 3
   },
@@ -285,7 +278,7 @@
    "DENIED": 1
   },
   "embargoed_home_world_nondip|fee=paid|support=2|doubts=2": {
-   "DENIED": 3
+   "DENIED": 2
   },
   "embargoed_home_world_nondip|fee=paid|support=2|doubts=3": {
    "DENIED": 1
@@ -303,7 +296,10 @@
    "DENIED": 7
   },
   "embargoed_home_world_nondip|fee=paid|visa=XW-2|risk=clear": {
-   "DENIED": 2
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|fee=paid|visa=XW-2|risk=flagged": {
+   "DENIED": 1
   },
   "embargoed_home_world_nondip|fee=unpaid|support=2|doubts=3": {
    "DENIED": 1
@@ -318,7 +314,10 @@
    "DENIED": 1
   },
   "embargoed_home_world_nondip|risk=clear": {
-   "DENIED": 14
+   "DENIED": 13
+  },
+  "embargoed_home_world_nondip|risk=flagged": {
+   "DENIED": 1
   },
   "embargoed_home_world_nondip|support=0|doubts=2": {
    "DENIED": 1
@@ -327,7 +326,7 @@
    "DENIED": 1
   },
   "embargoed_home_world_nondip|support=1|doubts=2": {
-   "DENIED": 1
+   "DENIED": 2
   },
   "embargoed_home_world_nondip|support=1|doubts=3": {
    "DENIED": 3
@@ -336,7 +335,7 @@
    "DENIED": 1
   },
   "embargoed_home_world_nondip|support=2|doubts=2": {
-   "DENIED": 3
+   "DENIED": 2
   },
   "embargoed_home_world_nondip|support=2|doubts=3": {
    "DENIED": 2
@@ -354,7 +353,10 @@
    "DENIED": 8
   },
   "embargoed_home_world_nondip|visa=XW-2|risk=clear": {
-   "DENIED": 2
+   "DENIED": 1
+  },
+  "embargoed_home_world_nondip|visa=XW-2|risk=flagged": {
+   "DENIED": 1
   },
   "embargoed_home_world|fee=paid|support=1|doubts=2": {
    "DENIED": 1
@@ -444,22 +446,22 @@
    "NEEDS_REVIEW": 1
   },
   "fee_unknown": {
-   "APPROVED": 56,
-   "DENIED": 21,
-   "NEEDS_REVIEW": 79
+   "APPROVED": 54,
+   "DENIED": 20,
+   "NEEDS_REVIEW": 78
   },
   "fee_unknown|fee=paid|support=1|doubts=3": {
-   "APPROVED": 4,
+   "APPROVED": 3,
    "DENIED": 4,
    "NEEDS_REVIEW": 3
   },
   "fee_unknown|fee=paid|support=2|doubts=2": {
    "APPROVED": 11,
-   "DENIED": 7,
-   "NEEDS_REVIEW": 19
+   "DENIED": 6,
+   "NEEDS_REVIEW": 18
   },
   "fee_unknown|fee=paid|support=2|doubts=3": {
-   "APPROVED": 8,
+   "APPROVED": 7,
    "DENIED": 3,
    "NEEDS_REVIEW": 11
   },
@@ -483,15 +485,15 @@
    "NEEDS_REVIEW": 3
   },
   "fee_unknown|fee=paid|visa=DIP-1|risk=clear": {
-   "APPROVED": 19,
+   "APPROVED": 18,
    "DENIED": 4,
-   "NEEDS_REVIEW": 14
+   "NEEDS_REVIEW": 13
   },
   "fee_unknown|fee=paid|visa=DIP-1|risk=flagged": {
-   "NEEDS_REVIEW": 4
+   "NEEDS_REVIEW": 5
   },
   "fee_unknown|fee=paid|visa=MED-3|risk=clear": {
-   "APPROVED": 12,
+   "APPROVED": 11,
    "DENIED": 3,
    "NEEDS_REVIEW": 5
   },
@@ -508,11 +510,11 @@
   },
   "fee_unknown|fee=paid|visa=XW-2|risk=clear": {
    "APPROVED": 13,
-   "DENIED": 4,
-   "NEEDS_REVIEW": 13
+   "DENIED": 3,
+   "NEEDS_REVIEW": 10
   },
   "fee_unknown|fee=paid|visa=XW-2|risk=flagged": {
-   "NEEDS_REVIEW": 4
+   "NEEDS_REVIEW": 6
   },
   "fee_unknown|fee=paid|visa=none|risk=clear": {
    "APPROVED": 2,
@@ -546,13 +548,13 @@
    "NEEDS_REVIEW": 1
   },
   "fee_unknown|fee=unknown|visa=MED-3|risk=clear": {
-   "NEEDS_REVIEW": 5
+   "NEEDS_REVIEW": 4
   },
   "fee_unknown|fee=unknown|visa=MED-3|risk=flagged": {
    "NEEDS_REVIEW": 1
   },
   "fee_unknown|fee=unknown|visa=XW-1|risk=clear": {
-   "NEEDS_REVIEW": 6
+   "NEEDS_REVIEW": 7
   },
   "fee_unknown|fee=unknown|visa=XW-1|risk=flagged": {
    "NEEDS_REVIEW": 1
@@ -564,25 +566,25 @@
    "NEEDS_REVIEW": 1
   },
   "fee_unknown|risk=clear": {
-   "APPROVED": 56,
-   "DENIED": 21,
-   "NEEDS_REVIEW": 63
+   "APPROVED": 54,
+   "DENIED": 20,
+   "NEEDS_REVIEW": 59
   },
   "fee_unknown|risk=flagged": {
-   "NEEDS_REVIEW": 16
+   "NEEDS_REVIEW": 19
   },
   "fee_unknown|support=1|doubts=3": {
-   "APPROVED": 4,
+   "APPROVED": 3,
    "DENIED": 4,
    "NEEDS_REVIEW": 4
   },
   "fee_unknown|support=2|doubts=2": {
    "APPROVED": 11,
-   "DENIED": 7,
-   "NEEDS_REVIEW": 27
+   "DENIED": 6,
+   "NEEDS_REVIEW": 26
   },
   "fee_unknown|support=2|doubts=3": {
-   "APPROVED": 8,
+   "APPROVED": 7,
    "DENIED": 3,
    "NEEDS_REVIEW": 15
   },
@@ -606,17 +608,17 @@
    "NEEDS_REVIEW": 5
   },
   "fee_unknown|visa=DIP-1|risk=clear": {
-   "APPROVED": 19,
+   "APPROVED": 18,
    "DENIED": 4,
-   "NEEDS_REVIEW": 21
+   "NEEDS_REVIEW": 20
   },
   "fee_unknown|visa=DIP-1|risk=flagged": {
-   "NEEDS_REVIEW": 5
+   "NEEDS_REVIEW": 6
   },
   "fee_unknown|visa=MED-3|risk=clear": {
-   "APPROVED": 12,
+   "APPROVED": 11,
    "DENIED": 3,
-   "NEEDS_REVIEW": 10
+   "NEEDS_REVIEW": 9
   },
   "fee_unknown|visa=MED-3|risk=flagged": {
    "NEEDS_REVIEW": 2
@@ -624,18 +626,18 @@
   "fee_unknown|visa=XW-1|risk=clear": {
    "APPROVED": 10,
    "DENIED": 7,
-   "NEEDS_REVIEW": 12
+   "NEEDS_REVIEW": 13
   },
   "fee_unknown|visa=XW-1|risk=flagged": {
    "NEEDS_REVIEW": 5
   },
   "fee_unknown|visa=XW-2|risk=clear": {
    "APPROVED": 13,
-   "DENIED": 4,
-   "NEEDS_REVIEW": 19
+   "DENIED": 3,
+   "NEEDS_REVIEW": 16
   },
   "fee_unknown|visa=XW-2|risk=flagged": {
-   "NEEDS_REVIEW": 4
+   "NEEDS_REVIEW": 6
   },
   "fee_unknown|visa=none|risk=clear": {
    "APPROVED": 2,
@@ -813,14 +815,11 @@
   "review_flag|fee=paid|support=3|doubts=3": {
    "NEEDS_REVIEW": 1
   },
-  "review_flag|fee=paid|support=4|doubts=1": {
-   "NEEDS_REVIEW": 1
-  },
   "review_flag|fee=paid|support=4|doubts=3": {
    "NEEDS_REVIEW": 1
   },
   "review_flag|fee=paid|visa=DIP-1|risk=flagged": {
-   "NEEDS_REVIEW": 2
+   "NEEDS_REVIEW": 1
   },
   "review_flag|fee=paid|visa=MED-3|risk=flagged": {
    "NEEDS_REVIEW": 6
@@ -836,7 +835,7 @@
    "NEEDS_REVIEW": 1
   },
   "review_flag|fee=waived|support=3|doubts=1": {
-   "NEEDS_REVIEW": 1
+   "NEEDS_REVIEW": 2
   },
   "review_flag|fee=waived|support=3|doubts=2": {
    "NEEDS_REVIEW": 1
@@ -845,6 +844,9 @@
    "NEEDS_REVIEW": 1
   },
   "review_flag|fee=waived|visa=DIP-1|risk=flagged": {
+   "NEEDS_REVIEW": 1
+  },
+  "review_flag|fee=waived|visa=MED-3|risk=flagged": {
    "NEEDS_REVIEW": 1
   },
   "review_flag|fee=waived|visa=XW-1|risk=flagged": {
@@ -858,7 +860,7 @@
    "NEEDS_REVIEW": 16
   },
   "review_flag|support=3|doubts=1": {
-   "NEEDS_REVIEW": 10
+   "NEEDS_REVIEW": 11
   },
   "review_flag|support=3|doubts=2": {
    "DENIED": 1,
@@ -868,16 +870,16 @@
    "NEEDS_REVIEW": 1
   },
   "review_flag|support=4|doubts=1": {
-   "NEEDS_REVIEW": 2
+   "NEEDS_REVIEW": 1
   },
   "review_flag|support=4|doubts=3": {
    "NEEDS_REVIEW": 1
   },
   "review_flag|visa=DIP-1|risk=flagged": {
-   "NEEDS_REVIEW": 3
+   "NEEDS_REVIEW": 2
   },
   "review_flag|visa=MED-3|risk=flagged": {
-   "NEEDS_REVIEW": 6
+   "NEEDS_REVIEW": 7
   },
   "review_flag|visa=XW-1|risk=flagged": {
    "DENIED": 1,
@@ -986,7 +988,10 @@
    "DENIED": 2
   },
   "revoked_sponsor|fee=waived|visa=XW-1|risk=clear": {
-   "DENIED": 3
+   "DENIED": 2
+  },
+  "revoked_sponsor|fee=waived|visa=XW-1|risk=flagged": {
+   "DENIED": 1
   },
   "revoked_sponsor|fee=waived|visa=XW-2|risk=clear": {
    "DENIED": 3
@@ -996,11 +1001,11 @@
   },
   "revoked_sponsor|risk=clear": {
    "APPROVED": 17,
-   "DENIED": 46,
+   "DENIED": 45,
    "NEEDS_REVIEW": 2
   },
   "revoked_sponsor|risk=flagged": {
-   "DENIED": 1
+   "DENIED": 2
   },
   "revoked_sponsor|support=0|doubts=3": {
    "DENIED": 1
@@ -1053,7 +1058,10 @@
   },
   "revoked_sponsor|visa=XW-1|risk=clear": {
    "APPROVED": 1,
-   "DENIED": 16
+   "DENIED": 15
+  },
+  "revoked_sponsor|visa=XW-1|risk=flagged": {
+   "DENIED": 1
   },
   "revoked_sponsor|visa=XW-2|risk=clear": {
    "DENIED": 13
@@ -1064,12 +1072,12 @@
   },
   "risk_unobserved": {
    "APPROVED": 88,
-   "DENIED": 27,
-   "NEEDS_REVIEW": 46
+   "DENIED": 24,
+   "NEEDS_REVIEW": 45
   },
   "risk_unobserved|fee=paid|support=3|doubts=1": {
    "APPROVED": 48,
-   "DENIED": 17,
+   "DENIED": 15,
    "NEEDS_REVIEW": 18
   },
   "risk_unobserved|fee=paid|support=3|doubts=2": {
@@ -1095,12 +1103,12 @@
   },
   "risk_unobserved|fee=paid|visa=MED-3|risk=clear": {
    "APPROVED": 16,
-   "DENIED": 11,
+   "DENIED": 10,
    "NEEDS_REVIEW": 4
   },
   "risk_unobserved|fee=paid|visa=XW-1|risk=clear": {
    "APPROVED": 15,
-   "DENIED": 4,
+   "DENIED": 3,
    "NEEDS_REVIEW": 8
   },
   "risk_unobserved|fee=paid|visa=XW-2|risk=clear": {
@@ -1113,8 +1121,8 @@
   },
   "risk_unobserved|fee=waived|support=3|doubts=1": {
    "APPROVED": 13,
-   "DENIED": 6,
-   "NEEDS_REVIEW": 10
+   "DENIED": 5,
+   "NEEDS_REVIEW": 9
   },
   "risk_unobserved|fee=waived|support=3|doubts=3": {
    "APPROVED": 1
@@ -1131,8 +1139,8 @@
   },
   "risk_unobserved|fee=waived|visa=MED-3|risk=clear": {
    "APPROVED": 6,
-   "DENIED": 4,
-   "NEEDS_REVIEW": 3
+   "DENIED": 3,
+   "NEEDS_REVIEW": 2
   },
   "risk_unobserved|fee=waived|visa=XW-1|risk=clear": {
    "APPROVED": 4,
@@ -1145,13 +1153,13 @@
   },
   "risk_unobserved|risk=clear": {
    "APPROVED": 88,
-   "DENIED": 27,
-   "NEEDS_REVIEW": 46
+   "DENIED": 24,
+   "NEEDS_REVIEW": 45
   },
   "risk_unobserved|support=3|doubts=1": {
    "APPROVED": 61,
-   "DENIED": 23,
-   "NEEDS_REVIEW": 28
+   "DENIED": 20,
+   "NEEDS_REVIEW": 27
   },
   "risk_unobserved|support=3|doubts=2": {
    "APPROVED": 2,
@@ -1177,12 +1185,12 @@
   },
   "risk_unobserved|visa=MED-3|risk=clear": {
    "APPROVED": 22,
-   "DENIED": 15,
-   "NEEDS_REVIEW": 7
+   "DENIED": 13,
+   "NEEDS_REVIEW": 6
   },
   "risk_unobserved|visa=XW-1|risk=clear": {
    "APPROVED": 19,
-   "DENIED": 6,
+   "DENIED": 5,
    "NEEDS_REVIEW": 12
   },
   "risk_unobserved|visa=XW-2|risk=clear": {
@@ -1217,7 +1225,10 @@
    "DENIED": 1
   },
   "stale_application|fee=paid|visa=XW-1|risk=clear": {
-   "DENIED": 5
+   "DENIED": 4
+  },
+  "stale_application|fee=paid|visa=XW-1|risk=flagged": {
+   "DENIED": 1
   },
   "stale_application|fee=paid|visa=XW-2|risk=clear": {
    "DENIED": 3
@@ -1235,11 +1246,11 @@
    "DENIED": 1
   },
   "stale_application|risk=clear": {
-   "DENIED": 18,
+   "DENIED": 17,
    "NEEDS_REVIEW": 1
   },
   "stale_application|risk=flagged": {
-   "DENIED": 1
+   "DENIED": 2
   },
   "stale_application|support=1|doubts=2": {
    "DENIED": 5
@@ -1261,13 +1272,16 @@
    "DENIED": 1
   },
   "stale_application|visa=XW-1|risk=clear": {
-   "DENIED": 7
+   "DENIED": 6
+  },
+  "stale_application|visa=XW-1|risk=flagged": {
+   "DENIED": 1
   },
   "stale_application|visa=XW-2|risk=clear": {
    "DENIED": 4
   },
   "transit_visa": {
-   "DENIED": 31,
+   "DENIED": 32,
    "NEEDS_REVIEW": 2
   },
   "transit_visa|fee=paid|support=1|doubts=3": {
@@ -1303,11 +1317,14 @@
   "transit_visa|fee=unknown|visa=TRANSIT-7|risk=clear": {
    "DENIED": 1
   },
+  "transit_visa|fee=unpaid|support=2|doubts=1": {
+   "DENIED": 1
+  },
   "transit_visa|fee=unpaid|support=2|doubts=2": {
    "DENIED": 1
   },
   "transit_visa|fee=unpaid|visa=TRANSIT-7|risk=clear": {
-   "DENIED": 1
+   "DENIED": 2
   },
   "transit_visa|fee=waived|support=3|doubts=1": {
    "DENIED": 4
@@ -1316,7 +1333,7 @@
    "DENIED": 4
   },
   "transit_visa|risk=clear": {
-   "DENIED": 30,
+   "DENIED": 31,
    "NEEDS_REVIEW": 1
   },
   "transit_visa|risk=flagged": {
@@ -1328,7 +1345,7 @@
    "NEEDS_REVIEW": 1
   },
   "transit_visa|support=2|doubts=1": {
-   "DENIED": 1
+   "DENIED": 2
   },
   "transit_visa|support=2|doubts=2": {
    "DENIED": 3
@@ -1344,7 +1361,7 @@
    "DENIED": 7
   },
   "transit_visa|visa=TRANSIT-7|risk=clear": {
-   "DENIED": 30,
+   "DENIED": 31,
    "NEEDS_REVIEW": 1
   },
   "transit_visa|visa=TRANSIT-7|risk=flagged": {
@@ -1352,14 +1369,14 @@
    "NEEDS_REVIEW": 1
   },
   "unpaid_fee": {
-   "DENIED": 27,
+   "DENIED": 25,
    "NEEDS_REVIEW": 2
   },
   "unpaid_fee|fee=unpaid|support=1|doubts=3": {
    "DENIED": 1
   },
   "unpaid_fee|fee=unpaid|support=2|doubts=1": {
-   "DENIED": 11
+   "DENIED": 10
   },
   "unpaid_fee|fee=unpaid|support=2|doubts=3": {
    "NEEDS_REVIEW": 1
@@ -1372,7 +1389,7 @@
    "DENIED": 2
   },
   "unpaid_fee|fee=unpaid|support=3|doubts=2": {
-   "DENIED": 2
+   "DENIED": 1
   },
   "unpaid_fee|fee=unpaid|support=4|doubts=0": {
    "DENIED": 4
@@ -1381,13 +1398,13 @@
    "DENIED": 1
   },
   "unpaid_fee|fee=unpaid|visa=DIP-1|risk=clear": {
-   "DENIED": 9
+   "DENIED": 8
   },
   "unpaid_fee|fee=unpaid|visa=MED-3|risk=clear": {
    "DENIED": 5
   },
   "unpaid_fee|fee=unpaid|visa=XW-1|risk=clear": {
-   "DENIED": 9
+   "DENIED": 8
   },
   "unpaid_fee|fee=unpaid|visa=XW-2|risk=clear": {
    "DENIED": 3,
@@ -1400,7 +1417,7 @@
    "NEEDS_REVIEW": 1
   },
   "unpaid_fee|risk=clear": {
-   "DENIED": 26,
+   "DENIED": 24,
    "NEEDS_REVIEW": 2
   },
   "unpaid_fee|risk=flagged": {
@@ -1410,7 +1427,7 @@
    "DENIED": 1
   },
   "unpaid_fee|support=2|doubts=1": {
-   "DENIED": 11
+   "DENIED": 10
   },
   "unpaid_fee|support=2|doubts=3": {
    "NEEDS_REVIEW": 1
@@ -1423,7 +1440,7 @@
    "DENIED": 2
   },
   "unpaid_fee|support=3|doubts=2": {
-   "DENIED": 2
+   "DENIED": 1
   },
   "unpaid_fee|support=4|doubts=0": {
    "DENIED": 4
@@ -1432,13 +1449,13 @@
    "DENIED": 1
   },
   "unpaid_fee|visa=DIP-1|risk=clear": {
-   "DENIED": 9
+   "DENIED": 8
   },
   "unpaid_fee|visa=MED-3|risk=clear": {
    "DENIED": 5
   },
   "unpaid_fee|visa=XW-1|risk=clear": {
-   "DENIED": 9
+   "DENIED": 8
   },
   "unpaid_fee|visa=XW-2|risk=clear": {
    "DENIED": 3,

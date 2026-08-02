@@ -30,7 +30,7 @@ import numpy as np
 import pdfplumber
 import pypdfium2 as pdfium
 
-from mib_pipeline import ocr_tesseract
+from mib_pipeline import ocr_tesseract, vocab
 
 # Rendering resolution.
 #
@@ -170,7 +170,13 @@ def _is_hidden(char, width: float, height: float) -> bool:
 
 
 def _split_visible(page) -> tuple[str, str, int]:
-    """Return (visible_text, hidden_text, visible_char_count) for one page."""
+    """Return (visible_text, hidden_text, visible_char_count) for one page.
+
+    This is only half the visible-evidence rule. Dropping hidden characters from
+    the text layer does not stop them reaching OCR, because pdfium renders them
+    into the page raster too and white-on-white text over a grey scan reads
+    cleanly. `strip_injected` is the other half; see the note above it.
+    """
     W, H = page.width, page.height
     visible, hidden = [], []
     for c in page.chars:
@@ -187,7 +193,15 @@ def _split_visible(page) -> tuple[str, str, int]:
 # adjudicator note as "unknown" drops it from rank 1 to rank 8 -- discarding the
 # single most reliable evidence in the packet.
 CONTENT_PATTERNS = (
-    ("adjudicator_note", re.compile(r"FINDING[:\.\-]|MANUALADJUDICAT|MANUALCORRECTION", re.I)),
+    # `MANUALCORRECTION` used to appear here and is an intake-form signal, not an
+    # adjudicator-note one: `Manual correction: sponsor is SPN-4705.` is printed
+    # on the intake form itself, on 136 of 136 training pages that carry it and
+    # on no adjudicator note. Because this pattern is consulted before the
+    # intake one, a damaged intake form carrying a correction was typed
+    # `adjudicator_note` -- promoting a rank-2 page to rank 1, the most
+    # authoritative evidence in the packet. It cost nothing on the public set,
+    # where those 136 pages all have readable titles, and is a private-set trap.
+    ("adjudicator_note", re.compile(r"FINDING[:\.\-]|MANUALADJUDICAT", re.I)),
     ("fee_receipt", re.compile(r"FEESTATUS|WAIVERCODE|AMOUNT\$", re.I)),
     ("biometric_slip", re.compile(r"OBSERVEDFLAGS|BIOMETRICCONFIDENCE|SPECIESMATCH|SCANIMAGE", re.I)),
     ("registry_extract", re.compile(r"REGISTRYNAME|REGISTRYSTATUS|REGISTRYIMAGE", re.I)),
@@ -211,6 +225,133 @@ HEADINGS = (
 
 _FUZZY_HEADING_MIN = 0.62
 
+# Stamps and watermarks painted over the page: they belong to no form, and in
+# OCR row order they sort above the real heading, pushing it out of the
+# three- and five-line windows the heading tests below inspect. Three fully
+# legible FORM I-8090 intake forms were typed `unknown` for exactly this
+# reason. Dropped for classification only -- extraction still sees them.
+#
+# `SAMPLE DENIAL` is a decoy watermark, not an adjudication.
+_WATERMARK_LINE = re.compile(
+    r"^(SAMPLEDENIAL|COPYARTIFACT|CASEWORK|FILED|ARCHIVE|REDACTED|SCANTAB"
+    r"|MIBEYESONLY)$",
+    re.I,
+)
+
+# `Manual correction: fee status is paid.` is printed on the intake form, and it
+# names a field belonging to a *different* document. Left in, it typed 28 intake
+# forms as fee receipts (rank 2 -> rank 6) and, before `MANUALCORRECTION` was
+# removed from the adjudicator-note signal, 136 more as adjudicator notes
+# (rank 2 -> rank 1). A correction line can name any field, so it can collide
+# with every form's pattern; it is excluded from typing rather than fought
+# case by case. `extract.parse_corrections` still reads it -- this drops it from
+# classification only.
+_CORRECTION_LINE = re.compile(r"^\s*manual\s*correction", re.I)
+
+# Field labels that identify a form when its heading is destroyed. The weight is
+# how exclusive the label is to that form: `Declared Purpose` appears only on
+# the intake form, while `Home World` is shared with the registry extract and
+# cannot carry the decision alone.
+FORM_ANCHORS = {
+    "intake_form": (
+        ("PRIMARYINTAKERECORD", 3.0), ("DECLAREDPURPOSE", 3.0),
+        ("VISACLASS", 2.0), ("SPONSORID", 2.0), ("PASSPORTIMAGE", 1.5),
+        ("APPLICANT", 1.0), ("SPECIESCODE", 1.0), ("HOMEWORLD", 1.0),
+        ("ARRIVALDATE", 1.0),
+    ),
+    "biometric_slip": (
+        ("BIOMETRICCONFIDENCE", 3.0), ("OBSERVEDFLAGS", 3.0),
+        ("SPECIESMATCH", 3.0), ("SCANIMAGE", 2.0), ("CASEID", 0.5),
+        ("APPLICANT", 0.5),
+    ),
+    "registry_extract": (
+        ("REGISTRYNAME", 3.0), ("REGISTRYSTATUS", 3.0),
+        ("REGISTRYIMAGE", 2.0), ("HOMEWORLD", 1.0), ("SPECIESCODE", 1.0),
+        ("ARRIVALDATE", 1.0),
+    ),
+    "fee_receipt": (
+        ("FEESTATUS", 3.0), ("WAIVERCODE", 3.0), ("AMOUNT", 2.0),
+        ("CASEID", 0.5),
+    ),
+    # No `MANUALCORRECTION` anchor: corrections are printed on the intake form,
+    # never on a note (136 of 136 training pages). Correction lines are stripped
+    # before this vote runs, but OCR damage can leave one that the strip misses,
+    # and the anchor would then push a rank-2 page to rank 1 -- the same trap
+    # that `CONTENT_PATTERNS` had.
+    "adjudicator_note": (
+        ("FINDING", 3.0), ("REASON", 2.0), ("MANUALADJUDICATORNOTE", 3.0),
+    ),
+    "sponsor_letter": (
+        ("ATTESTSTHAT", 3.0), ("TOMIBINTAKE", 3.0),
+        ("ACKNOWLEDGESRESPONSIBILITY", 3.0), ("ATTESTATIONISVALID", 2.0),
+        ("SPONSOR", 1.0),
+    ),
+}
+
+# A page must clear this much anchor weight, and beat the runner-up by this
+# margin, before it is typed. A page scoring equally for two forms surfaced the
+# labels they share, not the ones that discriminate.
+_ANCHOR_MIN = 2.5
+_ANCHOR_MARGIN = 1.0
+
+
+def _fuzzy_find(haystack: str, needle: str, floor: float) -> float:
+    """Best similarity for `needle` anywhere in `haystack`, else 0.
+
+    Scanning every offset with SequenceMatcher is correct but quadratic, and it
+    took replay from 17s to five minutes -- which would also have blown the
+    6s/PDF budget. The longest common block locates the only region that can
+    plausibly win: a window scoring 0.70 against an n-character needle must
+    share a run with it, so a page whose best run is short cannot match at all
+    and is rejected without any windowed comparison.
+    """
+    n = len(needle)
+    if not haystack or n > len(haystack):
+        return 0.0
+
+    matcher = SequenceMatcher(None, haystack, needle, autojunk=False)
+    block = matcher.find_longest_match(0, len(haystack), 0, n)
+    if block.size < max(3, int(0.35 * n)):
+        return 0.0
+
+    centre = block.a - block.b
+    lo = max(0, centre - n)
+    hi = min(len(haystack) - n, centre + n)
+    best = 0.0
+    for start in range(lo, hi + 1):
+        ratio = SequenceMatcher(None, haystack[start:start + n], needle).ratio()
+        if ratio > best:
+            best = ratio
+            if best > 0.97:
+                break
+    return best if best >= floor else 0.0
+
+
+def _anchor_vote(body: str) -> str | None:
+    """Type a page from the field labels it still shows.
+
+    Validated by deleting the title line from the 2,203 pages whose type is
+    known from an exact text layer and re-classifying blind: 100% precision at
+    100% coverage.
+    """
+    scores: dict[str, float] = {}
+    for doc_type, anchors in FORM_ANCHORS.items():
+        total = 0.0
+        for token, weight in anchors:
+            ratio = _fuzzy_find(body, token, 0.70)
+            if ratio:
+                total += weight * ratio
+        if total:
+            scores[doc_type] = total
+    if not scores:
+        return None
+    ranked = sorted(scores.items(), key=lambda kv: -kv[1])
+    best, score = ranked[0]
+    runner = ranked[1][1] if len(ranked) > 1 else 0.0
+    if score < _ANCHOR_MIN or score - runner < _ANCHOR_MARGIN:
+        return None
+    return best
+
 
 def _best_heading(head: str) -> str | None:
     """Best fuzzy heading match within the page's opening text.
@@ -233,21 +374,39 @@ def _best_heading(head: str) -> str | None:
     return best
 
 
-def classify(lines: list[str]) -> str:
-    """Identify the document type: exact heading, then content, then fuzzy heading."""
-    head = "".join(lines[:3]).upper().replace(" ", "").replace("'", "")
+def classify(lines: list[str], extra: list[str] | None = None) -> str:
+    """Identify the document type: exact heading, content, fuzzy heading, anchors.
+
+    `extra` carries the second engine's reading of the same page. Both engines
+    are consulted because a heading one of them destroyed the other often
+    survives, and typing a page wrong costs its whole authority rank.
+    """
+    merged = list(lines)
+    if extra:
+        merged.extend(l for l in extra if l not in merged)
+    # Drop watermark-only lines so the real heading rises into the windows below.
+    kept = [l for l in merged
+            if not _WATERMARK_LINE.match(re.sub(r"[^A-Z0-9]", "", l.upper()))
+            and not _CORRECTION_LINE.match(l)]
+
+    head = "".join(kept[:3]).upper().replace(" ", "").replace("'", "")
     for name, pattern in DOC_PATTERNS:
         if pattern.search(head):
             return name
 
-    body = "".join(lines).upper().replace(" ", "").replace("'", "")
+    body = "".join(kept).upper().replace(" ", "").replace("'", "")
     for name, pattern in CONTENT_PATTERNS:
         if pattern.search(body):
             return name
 
-    fuzzy = _best_heading(re.sub(r"[^A-Z0-9]", "", "".join(lines[:5]).upper()))
+    fuzzy = _best_heading(re.sub(r"[^A-Z0-9]", "", "".join(kept[:5]).upper()))
     if fuzzy:
         return fuzzy
+
+    anchored = _anchor_vote(re.sub(r"[^A-Z0-9]", "", body))
+    if anchored:
+        return anchored
+
     if _PASSPORT_RE.search(body):
         return "passport_image"
     return "unknown"
@@ -284,16 +443,27 @@ def read_packet(pdf_path: str, case_id: str) -> Packet:
                 # are no raster-only marks there to find.
                 second_lines: list[str] = []
                 if n_visible <= BOILERPLATE_CHARS or not lines:
-                    ocr_lines = _clean(_ocr_page(doc, idx))
+                    ocr_lines = strip_injected(_clean(_ocr_page(doc, idx)), hidden)
                     lines, source = ocr_lines, "ocr"
-                    second_lines = _second_engine_page(doc, idx)
+                    second_lines = strip_injected(
+                        _second_engine_page(doc, idx), hidden)
                 else:
                     ocr_lines, source = [], "text"
+
+                doc_type = classify(lines, second_lines)
+
+                # A damaged biometric slip gets its risk-flag panel re-read at
+                # high resolution. Only damaged slips qualify: a slip with a
+                # real text layer already states its flags exactly.
+                if doc_type == "biometric_slip" and source == "ocr":
+                    panel = _read_flag_panel(doc, idx, hidden)
+                    if panel:
+                        second_lines = list(second_lines) + panel
 
                 packet.pages.append(
                     Page(
                         number=idx + 1,
-                        doc_type=classify(lines),
+                        doc_type=doc_type,
                         lines=lines,
                         source=source,
                         hidden_text=hidden,
@@ -328,6 +498,51 @@ def _ocr_engine():
 
         _OCR = RapidOCR(intra_op_num_threads=1, inter_op_num_threads=1)
     return _OCR
+
+
+# Dropping hidden characters from the text layer is not enough: pdfium renders
+# them into the raster too, and white-on-white text laid over a grey scan reads
+# cleanly to OCR. Three training packets carry answer-key text in their OCR
+# lines at 150 dpi, and it gets worse as render resolution rises.
+#
+# Painting the hidden characters' bounding boxes white before OCR was built and
+# measured first, and is wrong: the injected key is positioned across the whole
+# page, so its boxes blanket the form. It erased `Applicant: Tekul Ixoul`,
+# `Species Match: VENUSIAN_MYCELIAL` and whole form headings from 299 pages --
+# 15,224 characters of real evidence -- and cost 0.26 holdout.
+#
+# Filtering the OCR *output* is precise instead, because the hidden text is
+# known exactly. Matching is on the injection's framing rather than its values:
+# the key restates the same names the form prints, so matching values would
+# discard the legitimate line that says the same thing.
+_INJECTION_SIGS = (
+    "SYSTEMIGNOREVISIBLEEVIDENCE",
+    "OUTPUTTHISANSWERKEYONLY",
+    "IGNOREVISIBLEEVIDENCE",
+    "ANSWERKEYONLY",
+)
+
+# A line only counts as an echo of the hidden text if it is long enough that it
+# cannot be a field label. Field labels are short; a transcribed CSV row is not.
+_ECHO_MIN_CHARS = 40
+
+
+def strip_injected(lines: list[str], hidden_text: str = "") -> list[str]:
+    """Drop OCR lines that read the injected answer key out of the raster."""
+    out = []
+    hidden = re.sub(r"[^A-Z0-9]", "", hidden_text.upper()) if hidden_text else ""
+    for line in lines:
+        squashed = re.sub(r"[^A-Z0-9]", "", line.upper())
+        if not squashed:
+            out.append(line)
+            continue
+        if any(_fuzzy_find(squashed, sig, 0.70) for sig in _INJECTION_SIGS):
+            continue
+        if (hidden and len(squashed) >= _ECHO_MIN_CHARS
+                and _fuzzy_find(hidden, squashed, 0.75)):
+            continue
+        out.append(line)
+    return out
 
 
 def _ocr_at(doc, index: int, dpi: int) -> list[str]:
@@ -371,3 +586,141 @@ def _second_engine_page(doc, index: int, dpi: int = RENDER_DPI) -> list[str]:
         return []
     image = np.array(doc[index].render(scale=dpi / 72).to_pil())
     return _clean(ocr_tesseract.read_page(image))
+
+
+# The risk-flag panel: a targeted re-read of the biometric slip's header.
+#
+# `oracle.py` prices true risk_flags at +7.31, the entire classification gap,
+# and only 2 of 245 missed flags were present in text we already held -- so it
+# is a reading failure, not a resolution one. Rendering the damaged slips showed
+# `Observed flags: biohazard_red` printed in a small faint header while the rest
+# of the page supplied plenty of characters from ruled lines and stamps, so the
+# existing 300-dpi retry (which fires only under 40 characters) never triggered.
+#
+# The panel sits in the top-left of every slip, so the crop can be re-rendered
+# at high resolution for a fraction of a full-page cost.
+PANEL_DPI = 400
+PANEL_TOP, PANEL_BOTTOM = 0.0, 0.30
+PANEL_LEFT, PANEL_RIGHT = 0.0, 0.68
+
+_FLAG_LABEL = "OBSERVEDFLAGS"
+_FLAG_SNAP_MIN = 0.74
+_FLAG_SCAN_MIN = 0.78
+# The generator prints these where the panel was destroyed. They must snap to
+# nothing, not to the nearest flag name.
+_PANEL_ABSENT = ("MISSING", "WHITEOUT", "CUTOUT", "REDACTED")
+
+
+def _snap_flag(token: str) -> str | None:
+    """Best risk flag for one OCR-damaged token, or None if nothing wins.
+
+    Values arrive as `bichozord_red` and `egible_biometics`, so an exact test
+    rejects exactly the cases this exists for. Risk flags are a closed set of
+    nine, which is what makes snapping safe.
+    """
+    probe = token.replace("_", "")
+    if len(probe) < 5:
+        return None
+    best, best_ratio = None, 0.0
+    for flag in vocab.RISK_FLAGS:
+        if flag == "none":
+            continue
+        target = flag.upper().replace("_", "")
+        ratio = SequenceMatcher(None, probe, target).ratio()
+        if len(probe) < len(target):
+            window = max(
+                SequenceMatcher(None, probe, target[i:i + len(probe)]).ratio()
+                for i in range(0, len(target) - len(probe) + 1)
+            )
+            ratio = max(ratio, window * (len(probe) / len(target)) ** 0.35)
+        if ratio > best_ratio:
+            best, best_ratio = flag, ratio
+    return best if best_ratio >= _FLAG_SNAP_MIN else None
+
+
+def _scan_flags(squashed: str) -> set[str]:
+    """Flag names anywhere in the crop, for when the label itself is destroyed."""
+    found = set()
+    probe = squashed.replace("_", "")
+    for flag in vocab.RISK_FLAGS:
+        if flag == "none":
+            continue
+        target = flag.upper().replace("_", "")
+        n = len(target)
+        if len(probe) < n * 0.7:
+            continue
+        span = max(int(n * 0.7), 6)
+        best = 0.0
+        for start in range(0, max(len(probe) - span + 1, 1)):
+            for width in (span, n):
+                window = probe[start:start + width]
+                if window:
+                    best = max(best, SequenceMatcher(None, window, target).ratio())
+        if best >= _FLAG_SCAN_MIN:
+            found.add(flag)
+    return found
+
+
+def flags_from_panel(lines: list[str]) -> set[str]:
+    """Risk flags stated on a biometric slip's `Observed flags` line."""
+    squashed = re.sub(r"[^A-Z_,\[\]]", "", "".join(lines).upper())
+    if not squashed:
+        return set()
+
+    # The label is damaged too (`Observed floga`, `Cbserved flags`), so locate
+    # it fuzzily or the test rejects the cases it exists for.
+    best_ratio, end = 0.0, None
+    for start in range(0, max(len(squashed) - len(_FLAG_LABEL) + 1, 1)):
+        window = squashed[start:start + len(_FLAG_LABEL)]
+        ratio = SequenceMatcher(None, window, _FLAG_LABEL).ratio()
+        if ratio > best_ratio:
+            best_ratio, end = ratio, start + len(_FLAG_LABEL)
+    if best_ratio < 0.70 or end is None:
+        return _scan_flags(squashed)
+
+    tail = re.split(r"SCANIMAGE|FORMB|CASEID|BIOMETRIC|SPECIES", squashed[end:])[0]
+    if any(marker in tail for marker in _PANEL_ABSENT):
+        return set()
+
+    found = {flag for flag in (_snap_flag(t.strip("_"))
+                               for t in re.split(r"[,\[\]]+", tail)) if flag}
+    return found or _scan_flags(squashed)
+
+
+def _read_flag_panel(doc, index: int, hidden: str) -> list[str]:
+    """Re-read the slip header at high resolution and restate what it says.
+
+    The returned line is canonical rather than verbatim: the panel is read as
+    OCR-damaged text and snapped to the closed flag set, exactly as names are
+    snapped to the generator's lexicon. Emitting the normalised form keeps the
+    damage from having to be re-parsed downstream.
+    """
+    page = doc[index]
+    width, height = page.get_size()
+    # Render only the panel, not the whole page. Rendering the full page at 400
+    # dpi and then discarding 80% of it made the cache build 50% slower and put
+    # the 6s/PDF budget at risk for no benefit.
+    crop = np.array(page.render(
+        scale=PANEL_DPI / 72,
+        crop=(width * PANEL_LEFT, height * (1.0 - PANEL_BOTTOM),
+              width * (1.0 - PANEL_RIGHT), height * PANEL_TOP),
+    ).to_pil())
+
+    def read(lines_source) -> set[str]:
+        return flags_from_panel(strip_injected(_clean(lines_source), hidden))
+
+    lines: list[str] = []
+    result, _ = _ocr_engine()(crop)
+    if result:
+        rows = sorted(result, key=lambda r: (min(p[1] for p in r[0]),
+                                             min(p[0] for p in r[0])))
+        lines.extend(r[1] for r in rows)
+    flags = read(lines)
+
+    # The second engine is only worth its cost when the first found nothing.
+    if not flags and ocr_tesseract.available():
+        flags = read(lines + list(ocr_tesseract.read_page(crop)))
+
+    if not flags:
+        return []
+    return [f"Observed flags: {', '.join(sorted(flags))}"]

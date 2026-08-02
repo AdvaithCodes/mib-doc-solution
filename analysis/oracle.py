@@ -22,7 +22,7 @@ from mib_pipeline.pipeline import SCORED_FIELDS
 
 POINTS = {"correct": 8, "to_review": 2, "missed_review": 1,
           "wrong": 0, "false_approval": -4}
-CACHE = pathlib.Path.home() / "dev/mib-artifacts/train_cache_2engine.jsonl"
+CACHE = pathlib.Path.home() / "dev/mib-artifacts/train_cache_panel.jsonl"
 LABELS = pathlib.Path.home() / "dev/mib-doc-challenge/data/train_labels.csv"
 
 
