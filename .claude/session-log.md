@@ -2,37 +2,28 @@
 
 ## Submission status
 
-**PR is open: https://github.com/8090-inc/mib-doc-challenge/pull/65** (filed
-2026-08-02, commit `06c8024` on `AdvaithCodes:submission/AdvaithCodes`). It
-carries exactly the three required files and the *pre-2026-08-02* artefact:
-holdout 122.38, validator exit 0, 5,000 records.
+**PR: https://github.com/8090-inc/mib-doc-challenge/pull/65** — OPEN, MERGEABLE,
+head `c70195e`, exactly the three required files. Carries the full 2026-08-02
+work.
 
-**Still outstanding — the Google form.** The entry does not count without it and
-the PR alone is not enough:
+**The only outstanding step is the Google form**, and it must record the score
+**124.51** (the field was drafted at 123.87 before the upgrade landed). The entry
+does not count without the form; the PR alone is not enough:
 https://docs.google.com/forms/d/1ZLkHmTsYd9I87JL1sUyps2rPTe6ohEI_lTZ8Jjts6bw/viewform
 
-The filed package is deliberately the older one, because it is internally
-coherent: `mib-doc-solution` at `3c3646d` is the code that produced those
-predictions, and the memo states those numbers. Deadline **2026-08-03**.
+Everything is consistent end to end:
 
-## Pending upgrade to the filed PR
+| | |
+| --- | --- |
+| Held out (700, tables fitted on the other 300) | **123.07** |
+| Public train, official `scripts/evaluate.py` | **124.51** / 150 |
+| Catastrophic false approvals | 1 |
+| Runtime | 1.09 s/PDF at 4 workers, 6 s budget |
+| `validate_submission.py` | exit 0, 5,000 records, 0 missing |
+| Solution repo | `29918dc`, pushed, CI green |
+| predictions.jsonl | byte-identical to the generated file |
 
-The 2026-08-02 work (holdout 122.38 -> 123.07) is **committed nowhere yet** and
-is not in the PR. To land it, all three must move together or the package stops
-being coherent:
-
-1. `~/dev/mib-artifacts/val_cache_panel.jsonl` finishes rebuilding (~20:30
-   2026-08-02), then regenerate predictions — see the block below.
-2. Restore the updated memo, saved at
-   `<scratchpad>/MEMO_new_2026-08-02.md`, over
-   `submissions/AdvaithCodes/MEMO.md`. It already carries the new numbers and
-   the write-ups for the flag panel, the raster leak and the 403 correction.
-3. Commit and push `mib-doc-solution` (7 modified files + 7 new
-   `analysis/` scripts), because `SUBMISSION.md` points the judges at that repo
-   and it must contain the code that produced the predictions.
-
-Then `git commit && git push fork submission/AdvaithCodes` — the PR updates in
-place, no new PR needed.
+Deadline **2026-08-03**.
 
 ## In flight right now (2026-08-02)
 
